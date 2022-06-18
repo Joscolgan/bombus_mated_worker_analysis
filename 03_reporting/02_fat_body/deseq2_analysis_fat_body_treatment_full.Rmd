@@ -1208,6 +1208,67 @@ ggplot(data = tmp,
 
 _**Fig. 11.** Scatterplot of correlation between log2 fold change in gene expression for inseminated and control for both bumblebee workers and queens. Each individual point represents a gene with coloured points representing genes with statistically significant differences in gene expression between treatment groups. Different colours represent different castes (red = worker, yellow = queen, orange = overlap)._  
 
+## Gene Ontology enrichment analysis:
+As a complementary approach to examine overlap in terms of higher processes related
+to differential gene expression, rank-based Gene Ontology enrichment analyses were performed
+for both worker and queen datasets, respectively. For each dataset, log2 fold change for
+inseminated bees versus control was used as a ranking measure and converted into a range
+from 1 to 0 to allow for implementation of a KS test in topGO, which analysed each GO term
+subcategory (biological process (BP); molecular function (MF); and celluar component (CC))
+in turn. Correction for multiple testing was performed using the Benjamini-Hochberg method. 
+For both worker and queen datasets, significantly enriched GO terms (n = 47 and 84, respectively)  
+were examined for overlap using a Euler plot identifying 32 enriched GO terms shared amongst
+both the worker and queen significantly differentially expressed genes providing further insight
+into similar changes in both castes in terms of gene expression in response to insemination.  
+
+```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
+## Read in enriched go terms:
+go_terms_worker_bp <- read.table(file = "data/output_20_fat_body_ks_log2FC_worker_classic/BP_sig.tmp",
+                              header = TRUE)
+go_terms_worker_bp$GO.ID <- as.character(unlist(go_terms_worker_bp$GO.ID))
+nrow(go_terms_worker_bp)
+go_terms_queen_bp <- read.table(file = "data/output_20_fat_body_ks_log2FC_queen_classic/BP_sig.tmp",
+                              header = TRUE)
+nrow(go_terms_queen_bp)
+go_terms_queen_bp$GO.ID <- as.character(unlist(go_terms_queen_bp$GO.ID))
+go_terms_worker_cc <- read.table(file = "data/output_20_fat_body_ks_log2FC_worker_classic/CC_sig.tmp",
+                              header = TRUE)
+go_terms_worker_cc$GO.ID <- as.character(unlist(go_terms_worker_cc$GO.ID))
+go_terms_queen_cc <- read.table(file = "data/output_20_fat_body_ks_log2FC_queen_classic/CC_sig.tmp",
+                              header = TRUE)
+go_terms_queen_cc$GO.ID <- as.character(unlist(go_terms_queen_cc$GO.ID))
+go_terms_worker_mf <- read.table(file = "data/output_20_fat_body_ks_log2FC_worker_classic/MF_sig.tmp",
+                              header = TRUE)
+go_terms_worker_mf$GO.ID <- as.character(unlist(go_terms_worker_mf$GO.ID))
+go_terms_queen_mf <- read.table(file = "data/output_20_fat_body_ks_log2FC_queen_classic/MF_sig.tmp",
+                              header = TRUE)
+go_terms_queen_mf$GO.ID <- as.character(unlist(go_terms_queen_mf$GO.ID))
+## Extract and compare significantly enriched GO terms:
+go_term_comparison <- euler(combinations = list("Worker GO terms" = c(subset(x = go_terms_worker_bp,
+                                                                            classic_ks_adjusted < 0.05)$GO.ID,
+                                                                      subset(x = go_terms_worker_cc,
+                                                                             classic_ks_adjusted < 0.05)$GO.ID,
+                                                                      subset(x = go_terms_worker_mf,
+                                                                             classic_ks_adjusted < 0.05)$GO.ID),
+                                                      "Queen GO terms" = c(subset(x = go_terms_queen_bp,
+                                                                                  classic_ks_adjusted < 0.05)$GO.ID,
+                                                                          subset(x = go_terms_queen_cc,
+                                                                                 classic_ks_adjusted < 0.05)$GO.ID,
+                                                                           subset(x = go_terms_queen_mf,
+                                                                                  classic_ks_adjusted < 0.05)$GO.ID)))
+## Generate plot:
+go_term_comparison_plot <- plot(go_term_comparison,
+                               quantities = TRUE,
+                               edges = TRUE,
+                               labels = list(fontsize = 12))
+```
+
+```{r figure17, ref.label = "figure17", fig.width = 4, fig.height = 2, fig.align = 'center',, echo = FALSE, message=FALSE, warning=FALSE}
+go_term_comparison_plot
+```
+
+_**Fig. 12.** Euler plot of enriched GO terms between inseminated and control individuals for each caste._  
+
 
 \newpage
 **Table 1:** Sample information
