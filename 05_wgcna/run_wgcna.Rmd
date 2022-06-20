@@ -285,15 +285,6 @@ In this analysis we would like to identify modules that are significantly associ
 
 ```{r, message = FALSE}
 # Define numbers of genes and samples
-nGenes = ncol(datExpr);
-nSamples = nrow(datExpr);
-# Recalculate MEs with color labels
-MEs0 = moduleEigengenes(datExpr, moduleColors)$eigengenes
-MEs = orderMEs(MEs0)
-moduleTraitCor = cor(MEs, datTraits, use = "p");
-moduleTraitPvalue = corPvalueStudent(moduleTraitCor, nSamples);
-
-# Define numbers of genes and samples
 exp_nGenes = ncol(transposed_data_filt);
 exp_nSamples = nrow(transposed_data_filt);
 # Recalculate MEs with color labels
@@ -306,25 +297,6 @@ exp_moduleTraitPvalue = corPvalueStudent(exp_moduleTraitCor, exp_nSamples);
 Since we have a moderately large number of modules and traits, a suitable graphical representation will help in reading the table. We color code each association by the correlation value:  
 
 ```{r, message = FALSE}
-sizeGrWindow(10,6)
-# Will display correlations and their p-values
-textMatrix = paste(signif(moduleTraitCor, 2), "\n(",
-                        signif(moduleTraitPvalue, 1), ")", sep = "");
-dim(textMatrix) = dim(moduleTraitCor)
-par(mar = c(6, 8.5, 3, 3));
-# Display the correlation values within a heatmap plot
-labeledHeatmap(Matrix = moduleTraitCor,
-             xLabels = names(datTraits),
-             yLabels = names(MEs),
-             ySymbols = names(MEs),
-             colorLabels = FALSE,
-             colors = blueWhiteRed(50),
-             textMatrix = textMatrix,
-             setStdMargins = FALSE,
-             cex.text = 0.5,
-             zlim = c(-1,1),
-             main = paste("Module-trait relationships"))
-
 ## Experimental dataset:
 sizeGrWindow(10,6)
 # Will display correlations and their p-values
