@@ -1271,6 +1271,35 @@ go_term_comparison_plot
 
 _**Fig. 12.** Euler plot of enriched GO terms between inseminated and control individuals for each caste._  
 
+## Weighted gene co-expression network analysis:
+
+Weighted gene co-expression network analysis was performed using the R package, WCGNA. 
+The WGCNA identified five modules, of which no module was significantly correlated with treatment (Fig. 13).   
+
+```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
+## Load saved R objects from the WGCNA analysis:
+load(file = "data/ovary-03-input_for_labelled_heatmap.RData")
+#load(file = "data/spermatheca-04-input_for_membership_scatterplot.RData")
+```
+
+```{r figure18, ref.label = "figure18", fig.width = 6, fig.height = 4, fig.align = 'center',, echo = FALSE, message=FALSE, warning=FALSE}
+par(mar = c(6, 8.5, 3, 3));
+# Display the correlation values within a heatmap plot
+labeledHeatmap(Matrix = exp_moduleTraitCor,
+             xLabels = names(samples_information),
+             yLabels = names(exp_MEs),
+             ySymbols = names(exp_MEs),
+             colorLabels = FALSE,
+             colors = blueWhiteRed(50),
+             textMatrix = exp_textMatrix,
+             setStdMargins = FALSE,
+             cex.text = 0.5,
+             zlim = c(-1,1),
+             main = paste("Module-category relationships"))
+```
+
+_**Fig. 13.** Heatmap displaying correlative relationships between WGCNA modules and categories (caste, stage, and treatment) of interest._   
+
 \newpage
 **Table 1:** Sample information
 
