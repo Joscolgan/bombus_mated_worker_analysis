@@ -957,6 +957,8 @@ saveRDS(object = deseq_object_results,
 ```
 _**Fig. 8.** Euler plot displaying differences and overlap in significantly differentially expressed genes for different treatment groups in comparison to control bees._   
 
+\newpage  
+
 ## Interaction effect between caste and stage:  
 **Model 2:** Given that we lack queen samples for the 'dilutant' and 'nothing' groups,
 we cannot examine an interaction effect between caste and treatment unless we subset. We can however examine an interaction between caste and stage using the entire dataset:
@@ -1269,6 +1271,34 @@ go_term_comparison_plot
 
 _**Fig. 12.** Euler plot of enriched GO terms between inseminated and control individuals for each caste._  
 
+## Weighted gene co-expression network analysis:
+
+Weighted gene co-expression network analysis was performed using the R package, WCGNA. 
+The WGCNA identified 15 modules, of which one module ("darkorange") was significantly positively correlated with treatment (Fig. 13). However, the module was also positively correlated with caste suggesting that other factors may explain gene expression profiles better.  
+
+```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
+## Load saved R objects from the WGCNA analysis:
+load(file = "data/fatbody-03-input_for_labelled_heatmap.RData")
+#load(file = "data/spermatheca-04-input_for_membership_scatterplot.RData")
+```
+
+```{r figure18, ref.label = "figure18", fig.width = 6, fig.height = 6, fig.align = 'center',, echo = FALSE, message=FALSE, warning=FALSE}
+par(mar = c(6, 8.5, 3, 3));
+# Display the correlation values within a heatmap plot
+labeledHeatmap(Matrix = exp_moduleTraitCor,
+             xLabels = names(samples_information),
+             yLabels = names(exp_MEs),
+             ySymbols = names(exp_MEs),
+             colorLabels = FALSE,
+             colors = blueWhiteRed(50),
+             textMatrix = exp_textMatrix,
+             setStdMargins = FALSE,
+             cex.text = 0.5,
+             zlim = c(-1,1),
+             main = paste("Module-category relationships"))
+```
+
+_**Fig. 13.** Heatmap displaying correlative relationships between WGCNA modules and categories (caste, stage, and treatment) of interest._ 
 
 \newpage
 **Table 1:** Sample information
