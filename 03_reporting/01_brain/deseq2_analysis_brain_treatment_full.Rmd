@@ -41,7 +41,7 @@ Second, density plots were generated for the percentage of expressed genes per s
 - Caste (Fig. 2A)
 - Treatment (Fig. 2B)
 - Stage (Fig. 2C)  
-There was a significant difference  in terms of the mean percentage of expressed genes across castes (t-test; p = 0.04), but no difference between treatments (ANOVA; p = 0.5) and stage (ANOVA; p = 0.34).  
+There was a significant difference  in terms of the mean percentage of expressed genes across castes (t-test; p = 0.01), but no difference between treatments (ANOVA; p = 0.38) and stage (ANOVA; p = 0.2).  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Step One: Load libraries - if not present, install from scratch.
@@ -323,7 +323,7 @@ colnames(sampleDistMatrix) <- NULL
 colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
 ```
 
-```{r figure3, ref.label = "figure3", fig.width = 8, fig.height = 6, echo = FALSE, message=FALSE}
+```{r figure3, ref.label = "figure3", fig.width = 8, fig.height = 8, echo = FALSE, message=FALSE}
 pheatmap(sampleDistMatrix,
          clustering_distance_rows = sampleDists,
          clustering_distance_cols = sampleDists,
@@ -694,19 +694,19 @@ gene expression = ~treatment + caste + stage;
 and a _reduced model_ of:  
 gene expression = ~caste + stage  
 
-From this model, a total of **2406** genes were identified as significantly differentiated expressed (adjusted _p_ value < 0.05; Fig. 6) across treatments.  
+From this model, a total of **2554** genes were identified as significantly differentiated expressed (adjusted _p_ value < 0.05; Fig. 6) across treatments.  
 
 Applying a more stringent threshold to examine specific differences between treatment groups for significant differential expression based on adjusted
-_p_ value and a minimum of absolute log2 fold change of 1, our model identifies **103** (Fig. 7a)
-significantly differentially expressed genes with the majority (n = **101**) having elevated 
+_p_ value and a minimum of absolute log2 fold change of 1, our model identifies **115** (Fig. 7a)
+significantly differentially expressed genes with the majority (n = **111**) having elevated 
 expression in the brain of inseminated bees, which is significant deviation from equal outcome of expression profiles for differentially expressed genes (binomial test; *p* < 0.05).  
 
-**Comparison of dilutant group and control bees**: Our model identifies **37** (Fig. 7b)
-significantly differentially expressed genes with the majority (n = **32**) having elevated 
+**Comparison of dilutant group and control bees**: Our model identifies **38** (Fig. 7b)
+significantly differentially expressed genes with the majority (n = **33**) having elevated 
 expression in the brain of bees inseminated only with dilutant.  
 
-**Comparison of the "nothing" group and control bees**: Our model identifies **62** (Fig. 7c)
-significantly differentially expressed genes with the majority (n = **38**) having elevated 
+**Comparison of the "nothing" group and control bees**: Our model identifies **63** (Fig. 7c)
+significantly differentially expressed genes with the majority (n = **40**) having elevated 
 expression in the brain of bees treated only with the needle. A complication with this 
 specific analysis is the low sample size of "nothing group", which consists of six individuals 
 after the removal of outlier samples.  
@@ -969,7 +969,7 @@ Full model: gene expression = ~treatment + caste + stage + caste:stage
 We then construct a _reduced model_ consisting of:
 gene expression = ~treatment + caste + stage  
 
-Analysis identified **1410** genes as differentially expressed (adjusted _p_ value < 0.05) between stage depending on caste. This however could be a consequence of the increased number of worker samples, including more divergent groupings.  
+Analysis identified **1668** genes as differentially expressed (adjusted _p_ value < 0.05) between stage depending on caste. This however could be a consequence of the increased number of worker samples, including more divergent groupings.  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Build DESeq2 dataset:
@@ -1088,7 +1088,7 @@ saveRDS(object = worker_results_df,
         file = "results/brain_deseq_object_results_worker_treatment.rds")
 ```
 
-Using all queen samples, **203** genes were differentially expressed between inseminated and control bees (Fig. 9B), which was redued to **44** when applying a more stringent filter (Log2FC >= 1).  
+Using all queen samples, **235** genes were differentially expressed between inseminated and control bees (Fig. 9B), which was reduced to **42** when applying a more stringent filter (Log2FC >= 1).  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Run differential expression analysis with queens:
@@ -1219,31 +1219,31 @@ inseminated bees versus control was used as a ranking measure and converted into
 from 1 to 0 to allow for implementation of a KS test in topGO, which analysed each GO term
 subcategory (biological process (BP); molecular function (MF); and celluar component (CC))
 in turn. Correction for multiple testing was performed using the Benjamini-Hochberg method. 
-For both worker and queen datasets, significantly enriched GO terms (n = 47 and 84, respectively)  
-were examined for overlap using a Euler plot identifying 32 enriched GO terms shared amongst
+For both worker and queen datasets, significantly enriched GO terms (n = 390 and 141, respectively)  
+were examined for overlap using a Euler plot identifying 35 enriched GO terms shared amongst
 both the worker and queen significantly differentially expressed genes providing further insight
 into similar changes in both castes in terms of gene expression in response to insemination.  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Read in enriched go terms:
-go_terms_worker_bp <- read.table(file = "data/output_20_brain_ks_log2FC_worker_classic/BP_sig.tmp",
+go_terms_worker_bp <- read.table(file = "data/output_20_brain_ks_log2FC_worker_classic/BP_sig_new.tmp",
                               header = TRUE)
 go_terms_worker_bp$GO.ID <- as.character(unlist(go_terms_worker_bp$GO.ID))
 nrow(go_terms_worker_bp)
-go_terms_queen_bp <- read.table(file = "data/output_20_brain_ks_log2FC_queen_classic/BP_sig.tmp",
+go_terms_queen_bp <- read.table(file = "data/output_20_brain_ks_log2FC_queen_classic/BP_sig_new.tmp",
                               header = TRUE)
 nrow(go_terms_queen_bp)
 go_terms_queen_bp$GO.ID <- as.character(unlist(go_terms_queen_bp$GO.ID))
-go_terms_worker_cc <- read.table(file = "data/output_20_brain_ks_log2FC_worker_classic/CC_sig.tmp",
+go_terms_worker_cc <- read.table(file = "data/output_20_brain_ks_log2FC_worker_classic/CC_sig_new.tmp",
                               header = TRUE)
 go_terms_worker_cc$GO.ID <- as.character(unlist(go_terms_worker_cc$GO.ID))
-go_terms_queen_cc <- read.table(file = "data/output_20_brain_ks_log2FC_queen_classic/CC_sig.tmp",
+go_terms_queen_cc <- read.table(file = "data/output_20_brain_ks_log2FC_queen_classic/CC_sig_new.tmp",
                               header = TRUE)
 go_terms_queen_cc$GO.ID <- as.character(unlist(go_terms_queen_cc$GO.ID))
-go_terms_worker_mf <- read.table(file = "data/output_20_brain_ks_log2FC_worker_classic/MF_sig.tmp",
+go_terms_worker_mf <- read.table(file = "data/output_20_brain_ks_log2FC_worker_classic/MF_sig_new.tmp",
                               header = TRUE)
 go_terms_worker_mf$GO.ID <- as.character(unlist(go_terms_worker_mf$GO.ID))
-go_terms_queen_mf <- read.table(file = "data/output_20_brain_ks_log2FC_queen_classic/MF_sig.tmp",
+go_terms_queen_mf <- read.table(file = "data/output_20_brain_ks_log2FC_queen_classic/MF_sig_new.tmp",
                               header = TRUE)
 go_terms_queen_mf$GO.ID <- as.character(unlist(go_terms_queen_mf$GO.ID))
 ## Extract and compare significantly enriched GO terms:
