@@ -65,7 +65,7 @@ opts_chunk$set(fig.width = 12, fig.height = 8)
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Set paths to folders containing output files from STAR
 paths <- list()
-paths$sample_batch_info <- "data/sample_information.txt"
+paths$sample_batch_info <- "data/sample_information_spermatheca.txt"
 paths$htseq_output   <- "input/"
 # Set relative paths:
 paths$htseq_files_relative <- grep(x = list.files(paths$htseq_output,
@@ -260,8 +260,8 @@ ggarrange(density_caste_plot,
                      "B",
                      "C"))
 
-#samples_to_keep <- colnames(counts(dds_htseq)) != "B37.ReadsPerGene.out.tab"
-#dds_htseq <- dds_htseq[, samples_to_keep]
+samples_to_keep <- colnames(counts(dds_htseq)) != "B37.ReadsPerGene.out.tab"
+dds_htseq <- dds_htseq[, samples_to_keep]
 ```
 
 _**Fig. 2.** Density plots displaying percentage of genes expressed across samples, including: A) caste (red = "queen", blue = "worker); B) treatment (red = "control", blue = "treatment"); and C) stage of ovarian development (blue = "two days", green = "four days", red = "eight days")._  
@@ -507,13 +507,21 @@ ggarrange(stage_plot_pc1_2,
           align = "hv",
           legend = "none")
 ```
-_**Fig. 6.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (two days = "blue"; four days = "green"; eight days = "red")_    
+_**Fig. 6.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (two days = "red"; four days = "green"; eight days = "blue")_    
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Calculate principal components:
 pca <- prcomp(t(assay(vsd)))
 
 pca_df <- as.data.frame(pca$x)
+
+samples_info_reduced <- samples_info[samples_to_keep, ]
+pca_df$stage <- samples_info_reduced$stage
+
+## Plot PCA:
+#ggplot(data = pca_df, aes(x = PC1, y = PC3, colour = stage)) +
+#  geom_point()
+
 ## check the proportion of variance explained by each PC:
 summary(pca)
 ```
@@ -972,7 +980,7 @@ dds_stage <- DESeqDataSetFromHTSeqCount(sampleTable = samples_info,
                                          treatment_group)
 
 dds_stage$stage <- relevel(dds_stage$stage,
-                           ref = "2")
+                           ref = "Stage_I")
 
 ## Create a DESeq2 object:
 stage_object  <- DESeq(dds_stage,
@@ -983,7 +991,7 @@ stage_object  <- DESeq(dds_stage,
 resultsNames(stage_object)
 ## Extract results:
 four_two_object_results <- results(stage_object,
-                                 name = "stage_4_vs_2")
+                                 name = "stage_Stage_II_vs_Stage_I")
 four_two_object_results_df <- as.data.frame(four_two_object_results)
 four_two_object_results_sig <- subset(four_two_object_results_df,
                                       padj < 0.05)
@@ -992,7 +1000,7 @@ nrow(four_two_object_results_sig)
 four_two_plot <- plot_volcano(four_two_object_results_df)
 
 eight_two_object_results <- results(stage_object,
-                                 name = "stage_8_vs_2")
+                                 name = "stage_Stage_IV_vs_Stage_I")
 eight_two_object_results_df <- as.data.frame(eight_two_object_results)
 eight_two_object_results_sig <- subset(eight_two_object_results_df,
                                       padj < 0.05)
@@ -1006,7 +1014,7 @@ To check if there is an interaction between treatment and stage:
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 samples_information_minus_day_two <- subset(samples_info,
-                                            stage != "2")
+                                            stage != "Stage_I")
 
 dds_stage <- DESeqDataSetFromHTSeqCount(sampleTable = samples_information_minus_day_two,
                                        directory = directory,
@@ -1023,7 +1031,7 @@ stage_object  <- DESeq(dds_stage,
 resultsNames(stage_object)
 
 stage_treatment_results <- results(stage_object,
-                                 name = "stage8.treatment_groupInsemination")
+                                 name = "stageStage_IV.treatment_groupInsemination")
 
 ## Subset significant results:
 stage_treatment_sig <- subset(stage_treatment_results,
@@ -1039,7 +1047,7 @@ Weighted gene co-expression network analysis was performed using the R package, 
 The WGCNA identified five modules, of which two modules ("red" (n = 158 genes) 
 and "yellow" (n = 904)) were significantly positively correlated with treatment 
 (Fig. 14). We can also quantify associations of individual genes with treatment by 
-defining gene significance (GS() as (the absolute value of) the correlation between a 
+defining gene significance (GS) as (the absolute value of) the correlation between a 
 gene and treatment. For each module, we also define a quantitative measure of 
 module membership (MM) as the correlation of the module eigengene (summary profile) 
 and the gene expression profile. This allows us to quantify the similarity of all genes 
