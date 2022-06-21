@@ -14,14 +14,14 @@ The purpose of the present analysis is to examine similarities and differences i
 included treatment groups to examine changes in gene expression due to artificial insemination alone as well as the dilutant used during the insemination step.  
 
 ## Samples:  
-The 'brain' dataset consists of 74 samples:    
-**Queen samples:** n = 26    
+The 'brain' dataset consists of 72 samples:    
+**Queen samples:** n = 24    
 - Control (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)  
-- Insemination (n = 14; stage 1 n = 6, stage II n = 4, and stage IV n = 4)   
+- Insemination (n = 14; stage 1 n = 4, stage II n = 4, and stage IV n = 4)   
 
 **Worker samples:** n = 48  
 - Control (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)  
-- Insemination (n = 12; stage 1 n = 6, stage II n = 4, and stage IV n = 4)  
+- Insemination (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)  
 - Dilutant (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)  
 - Nothing (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)  
 
@@ -36,7 +36,7 @@ _Bombus terrestris_ reference genome assembly using [STAR](https://github.com/al
 ## Results  
 The first aspect of the analysis involved examining potential outliers (i.e., samples with aberrant expression profiles).  
 First, the number of expressed genes was compared across individuals using an upset plot (Fig. 1).  
-This revealed **9103** genes expressed in all samples (approximately 79% of all genes (n = 11557) expressed in the brain).   
+This revealed **9232** genes expressed in all samples (approximately 81% of all genes (n = 11435) expressed in the brain).   
 Second, density plots were generated for the percentage of expressed genes per sample for:
 - Caste (Fig. 2A)
 - Treatment (Fig. 2B)
