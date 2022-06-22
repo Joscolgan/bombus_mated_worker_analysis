@@ -14,14 +14,14 @@ The purpose of the present analysis is to examine similarities and differences i
 included treatment groups to examine changes in gene expression due to artificial insemination alone as well as the dilutant used during the insemination step.  
 
 ## Samples:  
-The 'fat body' dataset consists of 74 samples:    
-**Queen samples:** n = 26    
+The 'fat body' dataset consists of 72 samples:    
+**Queen samples:** n = 24    
 - Control (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)  
-- Insemination (n = 14; stage 1 n = 6, stage II n = 4, and stage IV n = 4)   
+- Insemination (n = 12; stage 1 n = 6, stage II n = 4, and stage IV n = 4)   
 
 **Worker samples:** n = 48  
 - Control (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)  
-- Insemination (n = 12; stage 1 n = 6, stage II n = 4, and stage IV n = 4)  
+- Insemination (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)  
 - Dilutant (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)  
 - Nothing (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)  
 
@@ -36,12 +36,12 @@ _Bombus terrestris_ reference genome assembly using [STAR](https://github.com/al
 ## Results  
 The first aspect of the analysis involved examining potential outliers (i.e., samples with aberrant expression profiles).  
 First, the number of expressed genes was compared across individuals using an upset plot (Fig. 1).  
-This revealed **8603** genes expressed in all samples (approximately 82% of all genes (n = 11444) expressed in the fat bodies).   
+This revealed **8603** genes expressed in all samples (approximately 75% of all genes (n = 11444) expressed in the fat bodies).   
 Second, density plots were generated for the percentage of expressed genes per sample for:
 - Caste (Fig. 2A)
 - Treatment (Fig. 2B)
 - Stage (Fig. 2C)  
-There was no significant difference  in terms of the mean percentage of expressed genes across castes (t-test; p = 0.16), and treatments (ANOVA; p = 0.2) but there was between individuals collected at different stages (ANOVA; p < 0.05).  
+There was no significant difference  in terms of the mean percentage of expressed genes across castes (t-test; p = 0.07), and treatments (ANOVA; p = 0.2) but there was between individuals collected at different stages (ANOVA; p < 0.05).  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Step One: Load libraries - if not present, install from scratch.
@@ -289,7 +289,7 @@ ggarrange(density_caste_plot,
                      "C"))
 ```
 
-_**Fig. 2.** Density plots displaying percentage of genes expressed across samples, including: A) caste (red = "queen", blue = "worker); B) treatment (red = "control", blue = "treatment"); and C) stage of ovarian development (blue = "two days", green = "four days", red = "eight days")._  
+_**Fig. 2.** Density plots displaying percentage of genes expressed across samples, including: A) caste (red = "queen", blue = "worker); B) treatment (red = "control", blue = "treatment", green = "dilutant", purple = "injection"); and C) stage of ovarian development (red = "two days", green = "four days", blue = "eight days")._  
 
 \newpage  
 
@@ -352,7 +352,7 @@ _**Fig. 3.** Heatmap displaying distance matrix of genes expressed within and ac
 
 ## Principal component analysis: Full dataset  
 
-To examine further similarities in terms of expression profiles across samples, a principal component analysis using VST gene values was performed. The first principal component, which explains 30% of the variance in the dataset separates two individuals from the rest. Both individuals come from the "injection" group, which is seen in other tissue types.  
+To examine further similarities in terms of expression profiles across samples, a principal component analysis using VST gene values was performed. The first and second principal component, which explains 32% and 23% of the variance in the dataset, respectively, separates two individuals from the rest (Fig.4). Both individuals come from the "injection" group, with these outlier samples also appearing in the ovaries and brains. In terms of caste, PC3 seperates queens and workers (Fig. 4a), while there is no strong clustering by treatment (Fig. 4b), instead more by stage (Fig. 4c) with PC1 also separating individuals with stage IV ovarian development from those at earlier developmental stages.    
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Here set the two principal components that you want to compare:
 ## It can any combination between 1 and 22:
@@ -547,13 +547,13 @@ summary(pca)
 
 ## Principal component analysis: Reduced dataset  
 
-Based on the cluster analyses using full samples (distance matrix Fig.3; PCA Fig. 4), there are two samples that PC1 (30% of variance) separates from the others. Post-removal of the aberrant samples, PC1 explains 41% of the variance separating stage IV individuals from the rest. PC2 (26%) separates samples from stage I and II workers from the rest suggestive of early caste differences in term of ovarian development which reduce between the castes over developmental time. There is no clear pattern associated with treatment.      
+Based on the cluster analyses using full samples (distance matrix Fig.3; PCA Fig. 4), there are two samples that PC1 (32% of variance) separates from the others. Post-removal of the aberrant samples, PC1 explains 40% of the variance separating stage IV individuals from the rest (Fig. 5c). PC2 (26%) separates castes (Fig. 5a). There is no clear pattern associated with treatment (Fig. 5b).      
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Identify outliers:
 ## Based on PCs 1 and 2, anything right of 10 on PC1 is likely an outlier:
 samples_to_keep <- subset(x = pca_df,
-                          PC2 > -30)
+                          PC1 > -50)
 samples_to_keep <- row.names(samples_to_keep)
 
 ## Subset to only keep sampels of interest:
@@ -637,7 +637,7 @@ ggarrange(group_plot_pc1_2,
           legend = "none")
 ```
 
-_**Fig. 5b.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (control = "red"; inseminated group = "blue)._  
+_**Fig. 5b.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (control = "red"; inseminated group = "blue", dilutant group = "green", injection group = "puprle")._  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 stage_plot_pc1_2 <- plotPCA.san(vsd,
@@ -671,7 +671,7 @@ ggarrange(stage_plot_pc1_2,
           align = "hv",
           legend = "none")
 ```
-_**Fig. 5c.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (two days = "blue"; four days = "green"; eight days = "red")_    
+_**Fig. 5c.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (two days = "red"; four days = "green"; eight days = "blue")_    
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Calculate principal components:
@@ -693,20 +693,22 @@ gene expression = ~treatment + caste + stage;
 and a _reduced model_ of:  
 gene expression = ~caste + stage  
 
-From this model, a total of **3104** genes were identified as significantly differentiated expressed (adjusted _p_ value < 0.05; Fig. 6) across treatments.  
+From this model, a total of **1798** genes were identified as significantly differentiated expressed (adjusted _p_ value < 0.05; Fig. 6) across treatments.  
 
 Applying a more stringent threshold to examine specific differences between treatment groups for significant differential expression based on adjusted
-_p_ value and a minimum of absolute log2 fold change of 1, our model identifies **301** (Fig. 7a)
-significantly differentially expressed genes with the minority (n = **109**) having elevated 
+_p_ value and a minimum of absolute log2 fold change of 1, our model identifies **85** (Fig. 7a)
+significantly differentially expressed genes with the minority (n = **58**) having elevated 
 expression in the fat bodies of inseminated bees, which is significant deviation from equal outcome of expression profiles for differentially expressed genes (binomial test; *p* < 0.05).  
 
-**Comparison of dilutant group and control bees**: Our model identifies **87** (Fig. 7b)
-significantly differentially expressed genes with the majority (n = **48**) having elevated 
+**Comparison of dilutant group and control bees**: Our model identifies **84** (Fig. 7b)
+significantly differentially expressed genes with half (n = **42**) having elevated 
 expression in the fat bodies of bees inseminated only with dilutant.  
 
-**Comparison of the "nothing" group and control bees**: Our model identifies **185** (Fig. 7c)
-significantly differentially expressed genes with the majority (n = **153**) having elevated 
+**Comparison of the "nothing" group and control bees**: Our model identifies **207** (Fig. 7c)
+significantly differentially expressed genes with the majority (n = **171**) having elevated 
 expression in the fat bodies of bees treated only with the needle.    
+
+The overlap in terms of differentially expressed genes across treatments is shown in Fig. 8.  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Check names of comparisons:
@@ -960,7 +962,7 @@ _**Fig. 8.** Euler plot displaying differences and overlap in significantly diff
 \newpage  
 
 ## Interaction effect between caste and stage:  
-**Model 2:** Given that we lack queen samples for the 'dilutant' and 'nothing' groups,
+**Model 2:** Given that we lack queen samples for the 'dilutant' and 'inhection' groups,
 we cannot examine an interaction effect between caste and treatment unless we subset. We can however examine an interaction between caste and stage using the entire dataset:
 
 Full model: gene expression = ~treatment + caste + stage + caste:stage 
@@ -968,7 +970,7 @@ Full model: gene expression = ~treatment + caste + stage + caste:stage
 We then construct a _reduced model_ consisting of:
 gene expression = ~treatment + caste + stage  
 
-Analysis identified **3104** genes as differentially expressed (adjusted _p_ value < 0.05) between stage depending on caste. This however could be a consequence of the increased number of worker samples, including more divergent groupings.  
+Analysis identified **3537** genes as differentially expressed (adjusted _p_ value < 0.05) between stage depending on caste. This however could be a consequence of the increased number of worker samples, including more divergent groupings.  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Build DESeq2 dataset:
@@ -1087,7 +1089,7 @@ saveRDS(object = worker_results_df,
         file = "results/fat_body_deseq_object_results_worker_treatment.rds")
 ```
 
-Using all queen samples, **940** genes were differentially expressed between inseminated and control bees (Fig. 9B), which was redued to **84** when applying a more stringent filter (Log2FC >= 1).  
+Using all queen samples, **1341** genes were differentially expressed between inseminated and control bees (Fig. 9B), which was reduced to **127** when applying a more stringent filter (Log2FC >= 1).  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Run differential expression analysis with queens:
@@ -1122,7 +1124,7 @@ _**Fig. 9.** Volcano plots displaying differences in gene expression of fat bodi
 \newpage
 
 ## Euler plot:  
-To visualise similarities in terms of differential expression across bumblebee castes in response to insemination, we used a euler plot. First, in response to insemination, workers and queens share **6** differentially expressed genes, which consists of approximately 3% and 7.7% of worker and queen differentially expressed genes, respectively (Fig. 10).  
+To visualise similarities in terms of differential expression across bumblebee castes in response to insemination, we used a euler plot. First, in response to insemination, workers and queens share **6** differentially expressed genes, which consists of approximately 3% and 7.1% of worker and queen differentially expressed genes, respectively (Fig. 10).  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 worker_object_results_sig <- subset(worker_results_df,
@@ -1181,7 +1183,7 @@ tmp$V5 <- as.numeric(as.character(unlist(tmp$V5)))
 To further examine similarities in terms of gene expression in response to insemination,
 we ranked genes based on log2 fold change between inseminated and control bees for 
 each caste and performed a Pearson's coefficient correlation based on log2 fold change 
-identifying a weak (but significant) positive correlation ( _R_ = 0.02, *p* < 0.05; Fig. 11).
+identifying an ignorably weak, non-significant negative correlation ( _R_ = -0.01, *p*  = 0.24; Fig. 11).
 
 ```{r figure16, ref.label = "figure16", fig.width = 6, fig.height = 4, fig.align = 'center', echo = FALSE, message=FALSE, warning=FALSE}
 ## Generate a scatterplot:
@@ -1225,24 +1227,24 @@ into similar changes in both castes in terms of gene expression in response to i
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Read in enriched go terms:
-go_terms_worker_bp <- read.table(file = "data/output_20_fat_body_ks_log2FC_worker_classic/BP_sig.tmp",
+go_terms_worker_bp <- read.table(file = "data/output_20_fat_body_ks_log2FC_worker_classic/BP_sig_new.tmp",
                               header = TRUE)
 go_terms_worker_bp$GO.ID <- as.character(unlist(go_terms_worker_bp$GO.ID))
 nrow(go_terms_worker_bp)
-go_terms_queen_bp <- read.table(file = "data/output_20_fat_body_ks_log2FC_queen_classic/BP_sig.tmp",
+go_terms_queen_bp <- read.table(file = "data/output_20_fat_body_ks_log2FC_queen_classic/BP_sig_new.tmp",
                               header = TRUE)
 nrow(go_terms_queen_bp)
 go_terms_queen_bp$GO.ID <- as.character(unlist(go_terms_queen_bp$GO.ID))
-go_terms_worker_cc <- read.table(file = "data/output_20_fat_body_ks_log2FC_worker_classic/CC_sig.tmp",
+go_terms_worker_cc <- read.table(file = "data/output_20_fat_body_ks_log2FC_worker_classic/CC_sig_new.tmp",
                               header = TRUE)
 go_terms_worker_cc$GO.ID <- as.character(unlist(go_terms_worker_cc$GO.ID))
-go_terms_queen_cc <- read.table(file = "data/output_20_fat_body_ks_log2FC_queen_classic/CC_sig.tmp",
+go_terms_queen_cc <- read.table(file = "data/output_20_fat_body_ks_log2FC_queen_classic/CC_sig_new.tmp",
                               header = TRUE)
 go_terms_queen_cc$GO.ID <- as.character(unlist(go_terms_queen_cc$GO.ID))
-go_terms_worker_mf <- read.table(file = "data/output_20_fat_body_ks_log2FC_worker_classic/MF_sig.tmp",
+go_terms_worker_mf <- read.table(file = "data/output_20_fat_body_ks_log2FC_worker_classic/MF_sig_new.tmp",
                               header = TRUE)
 go_terms_worker_mf$GO.ID <- as.character(unlist(go_terms_worker_mf$GO.ID))
-go_terms_queen_mf <- read.table(file = "data/output_20_fat_body_ks_log2FC_queen_classic/MF_sig.tmp",
+go_terms_queen_mf <- read.table(file = "data/output_20_fat_body_ks_log2FC_queen_classic/MF_sig_new.tmp",
                               header = TRUE)
 go_terms_queen_mf$GO.ID <- as.character(unlist(go_terms_queen_mf$GO.ID))
 ## Extract and compare significantly enriched GO terms:
