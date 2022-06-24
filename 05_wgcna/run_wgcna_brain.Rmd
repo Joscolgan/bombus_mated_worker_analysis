@@ -159,8 +159,8 @@ plotDendroAndColors(exp_sampleTree2,
                   groupLabels = names(samples_information),
                   main = "Sample dendrogram and trait heatmap")
 
-saveRDS(object = exp_sampleTree2, file = "results/exp_sampleTree2_ovary.rds")
-saveRDS(object = exp_traitColors, file = "results/exp_traitColors_ovary.rds")
+saveRDS(object = exp_sampleTree2, file = "results/exp_sampleTree2_brain.rds")
+saveRDS(object = exp_traitColors, file = "results/exp_traitColors_brain.rds")
 ```
 
 In the plot, shown in Fig. 2, white means a low value, red a high value, and grey a missing entry. The last step is to save the relevant expression and trait data for use in the next steps of the tutorial.  
@@ -244,7 +244,7 @@ exp_dynamicMods = cutreeDynamic(dendro = exp_geneTree, distM = diss_exp_TOM,
 table(exp_dynamicMods)
 ```
 
-The function returned 22 modules labeled 1–22 largest to smallest. Label 0 is reserved for unassigned genes. The above command lists the sizes of the modules. We now plot the module assignment under the gene dendrogram:
+The function returned 28 modules labeled 1–28 largest to smallest. Label 0 is reserved for unassigned genes. The above command lists the sizes of the modules. We now plot the module assignment under the gene dendrogram:
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Experimental data:
@@ -359,7 +359,11 @@ labeledHeatmap(Matrix = exp_moduleTraitCor,
              main = paste("Module-trait relationships"))
 
 # Save module colors and labels for use in subsequent parts
-save(exp_MEs, exp_moduleTraitCor, samples_information, exp_textMatrix, file = "results/brain-03-input_for_labelled_heatmap.RData")
+save(exp_MEs,
+     exp_moduleTraitCor,
+     samples_information,
+     exp_textMatrix,
+     file = "results/brain-03-input_for_labelled_heatmap.RData")
 ```
 
 The resulting color-coded table is shown in Fig. 1.
