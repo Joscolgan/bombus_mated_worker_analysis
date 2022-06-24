@@ -14,14 +14,14 @@ The purpose of the present analysis is to examine similarities and differences i
 included treatment groups to examine changes in gene expression due to artificial insemination alone as well as the dilutant used during the insemination step.  
 
 ## Samples:  
-The 'ovary' dataset consists of 74 samples:    
-**Queen samples:** n = 26    
+The 'ovary' dataset consists of 72 samples:    
+**Queen samples:** n = 24    
 - Control (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)  
 - Insemination (n = 14; stage 1 n = 6, stage II n = 4, and stage IV n = 4)   
 
 **Worker samples:** n = 48  
 - Control (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)  
-- Insemination (n = 12; stage 1 n = 6, stage II n = 4, and stage IV n = 4)  
+- Insemination (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)  
 - Dilutant (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)  
 - Nothing (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)  
 
@@ -36,12 +36,12 @@ _Bombus terrestris_ reference genome assembly using [STAR](https://github.com/al
 ## Results  
 The first aspect of the analysis involved examining potential outliers (i.e., samples with aberrant expression profiles).  
 First, the number of expressed genes was compared across individuals using an upset plot (Fig. 1).  
-This revealed **9467** genes expressed in all samples (approximately 82% of all genes (n = 11604) expressed in the ovaries).   
+This revealed **9487** genes expressed in all samples (approximately 82% of all genes (n = 11602) expressed in the ovaries).   
 Second, density plots were generated for the percentage of expressed genes per sample for:
 - Caste (Fig. 2A)
 - Treatment (Fig. 2B)
 - Stage (Fig. 2C)  
-There was no significant difference  in terms of the mean percentage of expressed genes across castes (t-test; p = 0.2), treatments (ANOVA; p = 0.3) but there was between individuals collected at different stages (ANOVA; p < 0.05).  
+There was no significant difference  in terms of the mean percentage of expressed genes across castes (t-test; p = 0.37), treatments (ANOVA; p = 0.4) but there was between individuals collected at different stages (ANOVA; p < 0.05).  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Step One: Load libraries - if not present, install from scratch.
@@ -289,7 +289,7 @@ ggarrange(density_caste_plot,
                      "C"))
 ```
 
-_**Fig. 2.** Density plots displaying percentage of genes expressed across samples, including: A) caste (red = "queen", blue = "worker); B) treatment (red = "control", blue = "treatment"); and C) stage of ovarian development (blue = "two days", green = "four days", red = "eight days")._  
+_**Fig. 2.** Density plots displaying percentage of genes expressed across samples, including: A) caste (red = "queen", blue = "worker); B) treatment (red = "control", blue = "treatment"); and C) stage of ovarian development (red = "two days", green = "four days", blue = "eight days")._  
 
 \newpage  
 
@@ -352,7 +352,7 @@ _**Fig. 3.** Heatmap displaying distance matrix of genes expressed within and ac
 
 ## Principal component analysis: Full dataset  
 
-To examine further similarities in terms of expression profiles across samples, a principal component analysis using VST gene values was performed. The first principal component, which explains 55% of the variance in the dataset identifies the possibility of outliers with no clear difference explained by the first two components that separate caste. There was evidence that one of the treatments may be driving the pattern (Fig. 5). It was decided to rerun the PCA with the four samples separated by PC1 removed to provide more resolution on differences between samples    
+To examine further similarities in terms of expression profiles across samples, a principal component analysis using VST gene values was performed. The first principal component, which explains 83% of the variance in the dataset and with similar patterns to the brain and fat body, clearly separates the later stage of development for the ovaries from the other time points. Similarly to the other tissues, there is evidence of two outlier samples, which are separated from the rest based on PC2.  
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Here set the two principal components that you want to compare:
 ## It can any combination between 1 and 22:
@@ -547,7 +547,7 @@ summary(pca)
 
 ## Principal component analysis: Reduced dataset  
 
-Based on the cluster analyses using full samples (distance matrix Fig.3; PCA Fig. 4), there are two samples that PC2 (3% of variance) separates from the others. Unsurprisingly, PC1 (83%) explains the vast majority of variance of the dataset separating individuals with a later ovarian development time (8 days post-activation) and differ from the rest.    
+Based on the cluster analyses using reduced samples with the removal of two aberrant samples (distance matrix Fig.3; PCA Fig. 4), PC1 (92%) explains the vast majority of variance of the dataset separating individuals with a later ovarian development time (8 days post-activation) and differ from the rest, which was similar to the full dataset.
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Identify outliers:
@@ -637,7 +637,7 @@ ggarrange(group_plot_pc1_2,
           legend = "none")
 ```
 
-_**Fig. 5b.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (control = "red"; inseminated group = "blue)._  
+_**Fig. 5b.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (control = "red"; inseminated group = "blue", dilutant group = "green", injection group = "purple")._  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 stage_plot_pc1_2 <- plotPCA.san(vsd,
@@ -671,7 +671,7 @@ ggarrange(stage_plot_pc1_2,
           align = "hv",
           legend = "none")
 ```
-_**Fig. 5c.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (two days = "blue"; four days = "green"; eight days = "red")_    
+_**Fig. 5c.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (two days = "red"; four days = "green"; eight days = "blue")_    
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Calculate principal components:
@@ -960,7 +960,7 @@ saveRDS(object = deseq_object_results,
 _**Fig. 8.** Euler plot displaying differences and overlap in significantly differentially expressed genes for different treatment groups in comparison to control bees._   
 
 ## Interaction effect between caste and stage:  
-**Model 2:** Given that we lack queen samples for the 'dilutant' and 'nothing' groups,
+**Model 2:** Given that we lack queen samples for the 'dilutant' and 'injection' groups,
 we cannot examine an interaction effect between caste and treatment unless we subset. We can however examine an interaction between caste and stage using the entire dataset:
 
 Full model: gene expression = ~treatment + caste + stage + caste:stage 
@@ -968,7 +968,7 @@ Full model: gene expression = ~treatment + caste + stage + caste:stage
 We then construct a _reduced model_ consisting of:
 gene expression = ~treatment + caste + stage  
 
-Analysis identified **1410** genes as differentially expressed (adjusted _p_ value < 0.05) between stage depending on caste. This however could be a consequence of the increased number of worker samples, including more divergent groupings.  
+Analysis identified **4521** genes as differentially expressed (adjusted _p_ value < 0.05) between stage depending on caste. This however could be a consequence of the increased number of worker samples, including more divergent groupings.  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Build DESeq2 dataset:
@@ -1009,7 +1009,7 @@ A related question - how similar are differences between control and inseminated
 ## Overlap analysis of differentially expressed genes:  
 If we subset the dataset into workers and queens and examine differentially expressed genes with caste-restricted analyses, do we find the same differentially expressed genes between artifically inseminated and control bumblebees.  
 
-Using subsetted worker samples for only 'control' and 'insemination treatment', **3266** genes were significantly differentially expressed. Applying a threshold of absolute log2 fold change of 1, we reduce our number of differentially expressed genes to **253** (Fig. 9A).  
+Using subsetted worker samples for only 'control' and 'insemination treatment', **2913** genes were significantly differentially expressed. Applying a threshold of absolute log2 fold change of 1, we reduce our number of differentially expressed genes to **148** (Fig. 9A).  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## For this analysis, we will restrict to only 'control' and 'inseminated samples':
@@ -1087,7 +1087,7 @@ saveRDS(object = worker_results_df,
         file = "results/ovary_deseq_object_results_worker_treatment.rds")
 ```
 
-Using all queen samples, **203** genes were differentially expressed between inseminated and control bees (Fig. 9B), which was redued to **44** when applying a more stringent filter (Log2FC >= 1).  
+Using all queen samples, **2096** genes were differentially expressed between inseminated and control bees (Fig. 9B), which was redued to **49** when applying a more stringent filter (Log2FC >= 1).  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Run differential expression analysis with queens:
@@ -1122,7 +1122,7 @@ _**Fig. 9.** Volcano plots displaying differences in gene expression of ovaries 
 \newpage
 
 ## Euler plot:  
-To visualise similarities in terms of differential expression across bumblebee castes in response to insemination, we used a euler plot. First, in response to insemination, workers and queens share **23** differentially expressed genes, which consists of approximately 10% and 52% of worker and queen differentially expressed genes, respectively (Fig. 10).  
+To visualise similarities in terms of differential expression across bumblebee castes in response to insemination, we used a euler plot. First, in response to insemination, workers and queens share **5** differentially expressed genes, which consists of approximately 3% and 10% of worker and queen differentially expressed genes, respectively (Fig. 10).  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 worker_object_results_sig <- subset(worker_results_df,
@@ -1181,7 +1181,7 @@ tmp$V5 <- as.numeric(as.character(unlist(tmp$V5)))
 To further examine similarities in terms of gene expression in response to insemination,
 we ranked genes based on log2 fold change between inseminated and control bees for 
 each caste and performed a Pearson's coefficient correlation based on log2 fold change 
-identifying a weak (but significant) positive correlation ( _R_ = 0.12, *p* < 0.05; Fig. 11).
+identifying an weak correlation ( _R_ = 0.05, *p* < 0.05; Fig. 11).
 
 ```{r figure16, ref.label = "figure16", fig.width = 6, fig.height = 4, fig.align = 'center', echo = FALSE, message=FALSE, warning=FALSE}
 ## Generate a scatterplot:
@@ -1218,31 +1218,31 @@ inseminated bees versus control was used as a ranking measure and converted into
 from 1 to 0 to allow for implementation of a KS test in topGO, which analysed each GO term
 subcategory (biological process (BP); molecular function (MF); and celluar component (CC))
 in turn. Correction for multiple testing was performed using the Benjamini-Hochberg method. 
-For both worker and queen datasets, significantly enriched GO terms (n = 47 and 84, respectively)  
-were examined for overlap using a Euler plot identifying 32 enriched GO terms shared amongst
+For both worker and queen datasets, significantly enriched GO terms (n = 444 and 154, respectively)  
+were examined for overlap using a Euler plot identifying 72 enriched GO terms shared amongst
 both the worker and queen significantly differentially expressed genes providing further insight
 into similar changes in both castes in terms of gene expression in response to insemination.  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Read in enriched go terms:
-go_terms_worker_bp <- read.table(file = "data/output_20_ovary_ks_log2FC_worker_classic/BP_sig.tmp",
+go_terms_worker_bp <- read.table(file = "data/output_20_ovary_ks_log2FC_worker_classic/BP_sig_new.tmp",
                               header = TRUE)
 go_terms_worker_bp$GO.ID <- as.character(unlist(go_terms_worker_bp$GO.ID))
 nrow(go_terms_worker_bp)
-go_terms_queen_bp <- read.table(file = "data/output_20_ovary_ks_log2FC_queen_classic/BP_sig.tmp",
+go_terms_queen_bp <- read.table(file = "data/output_20_ovary_ks_log2FC_queen_classic/BP_sig_new.tmp",
                               header = TRUE)
 nrow(go_terms_queen_bp)
 go_terms_queen_bp$GO.ID <- as.character(unlist(go_terms_queen_bp$GO.ID))
-go_terms_worker_cc <- read.table(file = "data/output_20_ovary_ks_log2FC_worker_classic/CC_sig.tmp",
+go_terms_worker_cc <- read.table(file = "data/output_20_ovary_ks_log2FC_worker_classic/CC_sig_new.tmp",
                               header = TRUE)
 go_terms_worker_cc$GO.ID <- as.character(unlist(go_terms_worker_cc$GO.ID))
-go_terms_queen_cc <- read.table(file = "data/output_20_ovary_ks_log2FC_queen_classic/CC_sig.tmp",
+go_terms_queen_cc <- read.table(file = "data/output_20_ovary_ks_log2FC_queen_classic/CC_sig_new.tmp",
                               header = TRUE)
 go_terms_queen_cc$GO.ID <- as.character(unlist(go_terms_queen_cc$GO.ID))
-go_terms_worker_mf <- read.table(file = "data/output_20_ovary_ks_log2FC_worker_classic/MF_sig.tmp",
+go_terms_worker_mf <- read.table(file = "data/output_20_ovary_ks_log2FC_worker_classic/MF_sig_new.tmp",
                               header = TRUE)
 go_terms_worker_mf$GO.ID <- as.character(unlist(go_terms_worker_mf$GO.ID))
-go_terms_queen_mf <- read.table(file = "data/output_20_ovary_ks_log2FC_queen_classic/MF_sig.tmp",
+go_terms_queen_mf <- read.table(file = "data/output_20_ovary_ks_log2FC_queen_classic/MF_sig_new.tmp",
                               header = TRUE)
 go_terms_queen_mf$GO.ID <- as.character(unlist(go_terms_queen_mf$GO.ID))
 ## Extract and compare significantly enriched GO terms:
@@ -1274,7 +1274,7 @@ _**Fig. 12.** Euler plot of enriched GO terms between inseminated and control in
 ## Weighted gene co-expression network analysis:
 
 Weighted gene co-expression network analysis was performed using the R package, WCGNA. 
-The WGCNA identified five modules, of which no module was significantly correlated with treatment (Fig. 13).   
+The WGCNA identified five modules, of which no module was significantly positively correlated with treatment (Fig. 13).   
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Load saved R objects from the WGCNA analysis:
