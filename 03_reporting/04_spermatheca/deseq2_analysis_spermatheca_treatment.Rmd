@@ -63,6 +63,7 @@ opts_chunk$set(fig.width = 12, fig.height = 8)
 ```
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
+## Step Two: load sample information:
 ## Set paths to folders containing output files from STAR
 paths <- list()
 paths$sample_batch_info <- "data/sample_information_spermatheca.txt"
@@ -91,7 +92,6 @@ for (filenumber in 1:length(paths$htseq_files)) {
 # Step Three: Put sample names and treatments into a samples dataframe for DESeqDataSetFromTximport
 
 #Differential expression analysis and data exploration was performed using [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html), which allows for identfication of genes significantly differentially expressed, as well as examination of substructure and clustering through the implementation of principal component analysis on normalised gene-level counts.
-
 directory <- "./input/"
 
 ## Extract sample names and put into df for tximport
@@ -119,7 +119,7 @@ samples_info$stage <- factor(samples_info$stage)
 ```
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
-#Step Three: Explore gene-level accounts across samples to identify potential outliers  
+#Step Four: Explore gene-level accounts across samples to identify potential outliers  
 
 #The level of alignment across samples is generally quite good (>75% of all genes detected across samples (Fig. 1) with on average (mean) 87.5% of genes detected across all samples) (Figs.2-4).
 
@@ -145,7 +145,7 @@ for (name in 1:ncol(counts)){
 }
 
 ## Plot upSet plot and save as a PDF:
-pdf(file = "results/upset_plot.pdf",
+pdf(file = "results/spermatheca_upset_plot.pdf",
     height = 12,
     width = 8) # or other device
 UpSetR::upset(fromList(new_list), 
@@ -302,6 +302,10 @@ pheatmap(sampleDistMatrix,
          clustering_distance_rows = sampleDists,
          clustering_distance_cols = sampleDists,
          col = colors)
+
+ggsave(file = "results/pheatmap_spermatheca.png",
+       height = 8,
+       width = 10)
 ```
 
 _**Fig. 3.** Heatmap displaying distance matrix of genes expressed within and across samples._   
@@ -382,7 +386,7 @@ plotPCA.san <- function(object,
             ylab(paste0("PC", second_pc, ": ",
                         round(percentVar[second_pc] * 100),
                         "% Variance")) +
-            coord_fixed() +
+            #coord_fixed() +
             #geom_text_repel(size = 3) +
             theme_bw() +
             theme(axis.title = element_text(size = 12,
@@ -393,7 +397,7 @@ plotPCA.san <- function(object,
                                               face = "bold"),
                   legend.text = element_text(size = 12,
                                               face = "plain"),
-                  legend.position = "top")
+                  legend.position = "none")
 }
 ```
 
@@ -428,7 +432,7 @@ caste_plot_pc1_4 <- caste_plot_pc1_4 +
 ```
 
 ```{r figure6, ref.label = "figure6", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
-ggarrange(caste_plot_pc1_2,
+caste_combined <- ggarrange(caste_plot_pc1_2,
           caste_plot_pc1_3,
           caste_plot_pc1_4,
           nrow = 1,
@@ -446,25 +450,32 @@ group_plot_pc1_2 <- plotPCA.san(vsd,
                           second_pc = 2,
             intgroup = c("treatment_group"))
 group_plot_pc1_2 <- group_plot_pc1_2 +
-  scale_fill_discrete(name = "Treatment")
+  scale_fill_manual(name = "Treatment",
+                    values = c("blue",
+                               "yellow"))
 
 group_plot_pc1_3 <- plotPCA.san(vsd,
                           first_pc = 1,
                           second_pc = 3,
             intgroup = c("treatment_group"))
 group_plot_pc1_3 <- group_plot_pc1_3 +
-  scale_fill_discrete(name = "Treatment")
-
+    labs(x = NULL) +
+  scale_fill_manual(name = "Treatment",
+                    values = c("blue",
+                               "yellow"))
 group_plot_pc1_4 <- plotPCA.san(vsd,
                           first_pc = 1,
                           second_pc = 4,
             intgroup = c("treatment_group"))
 group_plot_pc1_4 <- group_plot_pc1_4 +
-  scale_fill_discrete(name = "Treatment")
+  labs(x = NULL) +
+  scale_fill_manual(name = "Treatment",
+                    values = c("blue",
+                               "yellow"))
 ```
 
 ```{r figure5, ref.label = "figure5", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
-ggarrange(group_plot_pc1_2,
+group_combined <- ggarrange(group_plot_pc1_2,
           group_plot_pc1_3,
           group_plot_pc1_4,
           nrow = 1,
@@ -481,25 +492,34 @@ stage_plot_pc1_2 <- plotPCA.san(vsd,
                           second_pc = 2,
             intgroup = c("stage"))
 stage_plot_pc1_2 <- stage_plot_pc1_2 +
-  scale_fill_discrete(name = "Stage")
+  scale_fill_manual(name = "Stage",
+                    values = c("black",
+                               "grey",
+                               "white"))
 
 stage_plot_pc1_3 <- plotPCA.san(vsd,
                           first_pc = 1,
                           second_pc = 3,
             intgroup = c("stage"))
 stage_plot_pc1_3 <- stage_plot_pc1_3 +
-  scale_fill_discrete(name = "Stage")
+  scale_fill_manual(name = "Stage",
+                    values = c("black",
+                               "grey",
+                               "white"))
 
 stage_plot_pc1_4 <- plotPCA.san(vsd,
                           first_pc = 1,
                           second_pc = 4,
             intgroup = c("stage"))
 stage_plot_pc1_4 <- stage_plot_pc1_4 +
-  scale_fill_discrete(name = "Stage")
+  scale_fill_manual(name = "Stage",
+                    values = c("black",
+                               "grey",
+                               "white"))
 ```
 
 ```{r figure7, ref.label = "figure7", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
-ggarrange(stage_plot_pc1_2,
+stage_combined <- ggarrange(stage_plot_pc1_2,
           stage_plot_pc1_3,
           stage_plot_pc1_4,
           nrow = 1,
@@ -508,6 +528,27 @@ ggarrange(stage_plot_pc1_2,
           legend = "none")
 ```
 _**Fig. 6.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (two days = "red"; four days = "green"; eight days = "blue")_    
+
+```{r, message = FALSE}
+## Generate a combined plot:
+ggarrange(caste_plot_pc1_2,
+          caste_plot_pc1_3,
+          caste_plot_pc1_4,
+          group_plot_pc1_2,
+          group_plot_pc1_3,
+          group_plot_pc1_4,
+          stage_plot_pc1_2,
+          stage_plot_pc1_3,
+          stage_plot_pc1_4,
+          nrow = 3,
+          ncol = 3,
+          legend = "none",
+          align = "hv") +
+  theme(plot.margin = margin(0,0,0,0)) %>%
+  ggexport(filename = "results/spermatheca_pca_scatterplots.pdf",
+           res = 600)
+```
+
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Calculate principal components:
@@ -539,7 +580,7 @@ gene expression = ~caste + stage
 From this model, a total of **2475** genes were identified as significantly differentially expressed (adjusted _p_ value < 0.05; Fig. 7) between inseminated and control bumblebees. Of this number, **1238** genes had elevated expression in inseminated bumblebees compared to control while in contrast **1237** genes had reduced expression in inseminated bumblebees. 
 
 Applying a more stringent threshold for significant differential expression based on adjusted
-_p_ value and a minimum of absolute log2 fold change of 1, our model identifies **505** (Fig. 8)
+_p_ value and a minimum of absolute log2 fold change of 1, our model identifies **502** (Fig. 8)
 significantly differentially expressed genes with the majority (n = **409**) having elevated 
 expression in the spermatheca of inseminated bees, which is significant deviation from equal outcome of expression profiles for differentially expressed genes (binomial test; *p* < 0.05).  
 
@@ -609,11 +650,11 @@ volcano_plot <- ggplot(deseq_object_results,
            y = -log10(padj))) +
   xlim(-10, 10) +
   geom_point(alpha = 0.5) +
-  geom_point(data = subset(deseq_object_insemination_sig_up,
+  geom_point(data = subset(as.data.frame(deseq_object_insemination_sig_up),
                            log2FoldChange >= 1 &
                              padj < 0.05),
              aes(colour = "orange")) +
-  geom_point(data = subset(deseq_object_insemination_sig_down,
+  geom_point(data = subset(as.data.frame(deseq_object_insemination_sig_down),
                            log2FoldChange <= -1 &
                              padj < 0.05),
              aes(colour = "blue")) +
@@ -721,7 +762,7 @@ Using all worker samples, **1527** genes were differentially expressed between i
 number of differentially expressed genes to **415** (Fig. 10A).  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
-## Create a function to run RUVSeq
+## Create a function to run DESeq2
 run_caste_deseq = function(specific_caste){
              ## Subset caste samples:
              samples <- subset(x = samples_info,
@@ -748,6 +789,12 @@ nrow(subset(x = worker_results_df,
 nrow(subset(x = worker_results_df,
             padj < 0.05 &
             absLog2FC >= 1))
+nrow(subset(x = worker_results_df,
+            padj < 0.05 &
+            log2FoldChange >= 1))
+nrow(subset(x = worker_results_df,
+            padj < 0.05 &
+            log2FoldChange <= -1))
 
 ## Set a function for plotting a volcano plot:
 plot_volcano <- function(input){
@@ -755,6 +802,7 @@ plot_volcano <- function(input){
        aes(x = log2FoldChange,
            y = -log10(padj))) +
   xlim(-10, 10) +
+    ylim(0, 180) +
   geom_point(alpha = 0.5) +
   geom_point(data = subset(input,
                            padj < 0.05 &
@@ -774,7 +822,7 @@ plot_volcano <- function(input){
                                 size = 12),
     legend.text = element_text(face = "plain",
                                 size = 12),
-    legend.position = "top") +
+    legend.position = "none") +
   scale_colour_manual(values = c("blue",
                                  "orange"),
                       labels = c("Inseminated-reduced",
@@ -793,6 +841,33 @@ Using all queen samples, **2196** genes were differentially expressed between in
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 run_caste_deseq(specific_caste = "Queen")
 queen_results_df <- as.data.frame(object_results)
+queen_results_df$absLog2FC <- abs(queen_results_df$log2FoldChange)
+nrow(subset(x = queen_results_df,
+            padj < 0.05))
+nrow(subset(x = queen_results_df,
+            padj < 0.05 &
+            absLog2FC >= 1))
+nrow(subset(x = queen_results_df,
+            padj < 0.05 &
+            log2FoldChange >= 1))
+nrow(subset(x = queen_results_df,
+            padj < 0.05 &
+            log2FoldChange <= -1))
+
+## Check overlap
+table(table(c(rownames(subset(x = worker_results_df,
+            padj < 0.05 &
+            log2FoldChange >= 1)),
+      rownames(subset(x = queen_results_df,
+            padj < 0.05 &
+            log2FoldChange >= 1)))))
+
+table(table(c(rownames(subset(x = worker_results_df,
+            padj < 0.05 &
+            log2FoldChange <= -1)),
+      rownames(subset(x = queen_results_df,
+            padj < 0.05 &
+            log2FoldChange <= -1)))))
 
 volcano_queen <- plot_volcano(input = queen_results_df)
 
@@ -801,7 +876,7 @@ saveRDS(object = queen_results_df,
 ```
 ```{r figure10, ref.label = "figure10", fig.width = 6, fig.height = 4, echo = FALSE, message=FALSE, warning=FALSE}
 ## Print to console:
-ggarrange(volcano_worker,
+volcano_castes <- ggarrange(volcano_worker,
           volcano_queen,
           nrow = 2,
           ncol = 1,
@@ -820,13 +895,15 @@ To visualise similarities in terms of differential expression across bumblebee c
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 worker_object_results_sig <- subset(worker_results_df,
-                                    padj < 0.05)
+                                    padj < 0.05 &
+                                    absLog2FC >= 1)
 queen_object_results_sig <- subset(queen_results_df,
-                                    padj < 0.05)
+                                    padj < 0.05 &
+                                    absLog2FC >= 1)
 
 ## Compare overlap of differentially expressed genes:
-venneu_tissue_comparison <- euler(combinations = list("Worker DE genes" = row.names(worker_object_results_sig),
-                                                      "Queen DE genes" = row.names(queen_object_results_sig)))
+venneu_tissue_comparison <- euler(combinations = list("Worker DEGs" = row.names(worker_object_results_sig),
+                                                      "Queen DEGs" = row.names(queen_object_results_sig)))
 
 ## Generate plot:
 tissue_comparison_plot <- plot(venneu_tissue_comparison,
@@ -877,21 +954,23 @@ identifying a significant positive correlation ( _R_ = 0.47, *p* < 0.05; Fig. 12
 
 ```{r figure12, ref.label = "figure12", fig.width = 6, fig.height = 4, fig.align = 'center', echo = FALSE, message=FALSE, warning=FALSE}
 ## Generate a scatterplot:
-ggplot(data = tmp,
+scatterplot <- ggplot(data = tmp,
        aes(x = V2,
            y = V4)) +
-  geom_smooth(method = "lm") +
-  xlab(label = "Worker: insemination vs control - log2FC") +
-  ylab(label = "Queen: insemination vs control - log2FC") +
+  xlab(label = "Worker: log2FC") +
+  ylab(label = "Queen: log2FC") +
   geom_point(alpha = 0.5) +
-  geom_point(data = subset(x = tmp,
-                           V3 <= 0.05),
-                           colour = "red",
-             alpha = 0.5) +
-  geom_point(data = subset(x = tmp,
-                           V5 <= 0.05),
-                           colour = "blue",
-             alpha = 0.5) +
+  geom_smooth(method = "lm") +
+  #geom_point(data = subset(x = tmp,
+  #                         V3 <= 0.05 &
+  #                         abs(V2) >= 1),
+  #                         colour = "red",
+  #           alpha = 0.5) +
+  #geom_point(data = subset(x = tmp,
+  #                         V5 <= 0.05 &
+  #                           abs(V4) >= 1),
+  #                         colour = "blue",
+  #           alpha = 0.5) +
   theme_bw() +
   theme(axis.title = element_text(face = "bold",
                                   size = 12)) +
@@ -899,6 +978,42 @@ ggplot(data = tmp,
 ```
 
 _**Fig. 12.** Scatterplot of correlation between log2 fold change in gene expression for inseminated and control for both bumblebee workers and queens. Each individual point represents a gene with coloured points representing genes with statistically significant differences in gene expression between treatment groups. Different colours represent different castes (red = worker, blue = queen, purple = overlap)._  
+
+```{r, message = FALSE}
+## Generate a multi-panel plot:
+pca_plots <- ggarrange(caste_plot_pc1_2,
+                       group_plot_pc1_2,
+                       stage_plot_pc1_2,
+                       nrow = 1,
+                       ncol = 3,
+                       labels = c("A",
+                                  "B",
+                                  "C"),
+                       align = "hv")
+
+rest_plot <- ggarrange(
+          volcano_worker,
+          volcano_queen,
+          tissue_comparison_plot,
+          scatterplot,
+          nrow = 2,
+          ncol = 2,
+          labels = c("D",
+                     "E",
+                     "F",
+                     "G"),
+          common.legend = FALSE,
+          align = "hv") 
+
+ggarrange(pca_plots,
+          rest_plot,
+          ncol = 1,
+          nrow = 2,
+          heights = c(1,2.5),
+          align = "hv") %>%
+  ggexport(filename = "results/figure_1_caste_comparison.pdf",
+           dpi = 600)
+```
 
 ## Gene Ontology enrichment analysis:
 As a complementary approach to examine overlap in terms of higher processes related
