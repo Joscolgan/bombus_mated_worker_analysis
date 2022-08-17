@@ -1,0 +1,50 @@
+---
+author: "Joe Colgan"
+title: "**Transcriptomic analysis of brains of control and inseminated _Bombus terrestris_ workers and queens**"
+output:
+  pdf_document: default
+  html_document: default
+fig_width: 4
+fig_height: 4
+fontsize: 20pt
+---
+
+```{r, message = FALSE}
+## Load DEGs for workers and queens:
+worker_degs_df <- read.table(file = "results/worker_degs.txt",
+                             header = TRUE)
+nrow(subset(x = worker_degs_df,
+            padj < 0.05))
+
+queen_degs_df <- read.table(file = "results/queen_degs.txt",
+                             header = TRUE)
+nrow(subset(x = queen_degs_df,
+            padj < 0.05))
+```
+
+Subset significantly DEGs:
+
+```{r, message = FALSE}
+worker_degs_sig_up <- subset(x = worker_degs_df,
+                             padj < 0.05 &
+                             log2FoldChange > 1)
+
+worker_degs_sig_down <- subset(x = worker_degs_df,
+                             padj < 0.05 &
+                             log2FoldChange < -1)
+
+queen_degs_sig_up <- subset(x = queen_degs_df,
+                             padj < 0.05 &
+                             log2FoldChange > 1)
+
+queen_degs_sig_down <- subset(x = queen_degs_df,
+                             padj < 0.05 &
+                             log2FoldChange < -1)
+
+## Check overlap:
+table(table(c(row.names(worker_degs_sig_up),
+              row.names(queen_degs_sig_up))))
+
+table(table(c(row.names(worker_degs_sig_down),
+              row.names(queen_degs_sig_down))))
+```
