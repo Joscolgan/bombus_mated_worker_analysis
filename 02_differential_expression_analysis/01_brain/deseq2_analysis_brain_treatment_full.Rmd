@@ -289,7 +289,7 @@ ggarrange(density_caste_plot,
                      "C"))
 ```
 
-_**Fig. 2.** Density plots displaying percentage of genes expressed across samples, including: A) caste (red = "queen", blue = "worker); B) treatment (red = "control", blue = "treatment"); and C) stage of ovarian development (blue = "two days", green = "four days", red = "eight days")._  
+_**Fig. 2.** Density plots displaying percentage of genes expressed across samples, including: A) caste (red = "queen", blue = "worker); B) treatment (red = "control", blue = "treatment"); and C) stage of ovarian development (red = "two days", green = "four days", blue = "eight days")._  
 
 \newpage  
 
@@ -499,7 +499,7 @@ ggarrange(group_plot_pc1_2,
           legend = "none")
 ```
 
-_**Fig. 4b.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (control = "red"; inseminated group = "blue)._  
+_**Fig. 4b.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (control = "red"; inseminated group = "blue", dilutant group = "green", injection group = "purple")._  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 stage_plot_pc1_2 <- plotPCA.san(vsd,
@@ -533,7 +533,7 @@ ggarrange(stage_plot_pc1_2,
           align = "hv",
           legend = "none")
 ```
-_**Fig. 4c.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (two days = "blue"; four days = "green"; eight days = "red")_    
+_**Fig. 4c.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (two days = "red"; four days = "green"; eight days = "blue")_    
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Calculate principal components:
@@ -638,7 +638,7 @@ ggarrange(group_plot_pc1_2,
           legend = "none")
 ```
 
-_**Fig. 5b.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (control = "red"; inseminated group = "blue)._  
+_**Fig. 5b.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (control = "red"; inseminated group = "blue", dilutant group = "green", injection = "purple")._  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 stage_plot_pc1_2 <- plotPCA.san(vsd,
@@ -672,7 +672,7 @@ ggarrange(stage_plot_pc1_2,
           align = "hv",
           legend = "none")
 ```
-_**Fig. 5c.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (two days = "blue"; four days = "green"; eight days = "red")_    
+_**Fig. 5c.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (two days = "red"; four days = "green"; eight days = "blue")_    
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Calculate principal components:
