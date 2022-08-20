@@ -382,10 +382,10 @@ plotPCA.san <- function(object,
                        size = 3) +
             xlab(paste0("PC", first_pc, ": ",
                         round(percentVar[first_pc] * 100),
-                        "% Variance")) +
+                        "%")) +
             ylab(paste0("PC", second_pc, ": ",
                         round(percentVar[second_pc] * 100),
-                        "% Variance")) +
+                        "%")) +
             #coord_fixed() +
             #geom_text_repel(size = 3) +
             theme_bw() +
@@ -832,8 +832,18 @@ plot_volcano <- function(input){
 
 volcano_worker <- plot_volcano(input = worker_results_df)
 
+dir.create(path = "results/worker_specific_analysis",
+           recursive = TRUE)
+
+write.table(x = worker_results_df,
+            file = "results/worker_specific_analysis/deseq_object_results_worker_treatment.txt",
+            quote = FALSE,
+            row.names = TRUE,
+            col.names = TRUE,
+            sep = "\t")
+
 saveRDS(object = worker_results_df,
-        file = "results/deseq_object_results_worker_treatment.rds")
+        file = "results/worker_specific_analysis/deseq_object_results_worker_treatment.rds")
 ```
 
 Using all queen samples, **2196** genes were differentially expressed between inseminated and control bees (Fig. 10B). 
@@ -871,8 +881,18 @@ table(table(c(rownames(subset(x = worker_results_df,
 
 volcano_queen <- plot_volcano(input = queen_results_df)
 
-saveRDS(object = queen_results_df,
-        file = "results/deseq_object_results_queen_treatment.rds")
+dir.create(path = "results/queen_specific_analysis",
+           recursive = TRUE)
+
+write.table(x = worker_results_df,
+            file = "results/queen_specific_analysis/deseq_object_results_queen_treatment.txt",
+            quote = FALSE,
+            row.names = TRUE,
+            col.names = TRUE,
+            sep = "\t")
+
+saveRDS(object = worker_results_df,
+        file = "results/queen_specific_analysis/deseq_object_results_queen_treatment.rds")
 ```
 ```{r figure10, ref.label = "figure10", fig.width = 6, fig.height = 4, echo = FALSE, message=FALSE, warning=FALSE}
 ## Print to console:
