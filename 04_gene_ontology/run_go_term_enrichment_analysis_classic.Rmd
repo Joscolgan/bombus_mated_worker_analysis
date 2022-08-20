@@ -1,10 +1,17 @@
---- 
-title: "Salmo sex study"
-output: go_enrichment_analysis.html
-author: Joe Colgan (joscolgan)
+---
+author: "Joe Colgan"
+title: "**Gene Ontology term enrichment analysis of control and inseminated spermatheca of _Bombus terrestris_ workers and queens**"
+output:
+  pdf_document: default
+  html_document: default
+fig_width: 4
+fig_height: 4
+fontsize: 20pt
 ---
 
-# Introduction 
+## Introduction
+The purpose of the present analysis is to examine similarities and differences in terms of gene expression associated with the spermatheca of _Bombus terrestris_ workers and queens. For the present study, control (unmated) and artificially inseminated bumblebees were collected and spermatheca removed at three different time points (two, four and eight days post-treatment).
+
 This script is for gene ontology (GO) enrichment analysis of differentiallly expressed genes to explore the biological processes and molecular functions associated with DE genes, using the R package 'TopGO' (https://www.bioconductor.org/packages/3.7/bioc/vignettes/topGO/inst/doc/topGO.pdf).
 Twp input files are required for the running of the test:  
 1) A genelist file:  
