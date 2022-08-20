@@ -1,4 +1,4 @@
-# bter_tissue_analysis. 
+## Context & Citation:   
 Scripts related to transcriptomic analysis of the study:  
 __The reproductive function of the worker during morphogenesis in eusocial bumblebee – mating and laying fertilized egg__. 
 
