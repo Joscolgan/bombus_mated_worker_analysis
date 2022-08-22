@@ -282,6 +282,19 @@ deseq_object  <- DESeq(dds_htseq,
 vsd <- vst(deseq_object,
              blind = FALSE)
 
+## Update stage:
+vsd$stage <- gsub(pattern = "Stage_IV",
+                            replacement = "Day 8",
+                            vsd$stage)
+
+vsd$stage <- gsub(pattern = "Stage_II",
+                            replacement = "Day 4",
+                            vsd$stage)
+
+vsd$stage <- gsub(pattern = "Stage_I",
+                            replacement = "Day 2",
+                            vsd$stage)
+
 ## Save object:
 saveRDS(object = vsd,
         file = "results/vsd_spermatheca_treatment.rds")
@@ -298,14 +311,14 @@ colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
 ```
 
 ```{r figure3, ref.label = "figure3", fig.width = 8, fig.height = 6, echo = FALSE, message=FALSE}
-pheatmap(sampleDistMatrix,
-         clustering_distance_rows = sampleDists,
-         clustering_distance_cols = sampleDists,
-         col = colors)
-
-ggsave(file = "results/pheatmap_spermatheca.png",
-       height = 8,
-       width = 10)
+pdf(file = "results/spermetheca_filtered_pheatmap.pdf",
+    height = 10,
+    width = 10)
+spermatheca_heatmap_filtered <- pheatmap(sampleDistMatrix,
+                                         clustering_distance_rows = sampleDists,
+                                         clustering_distance_cols = sampleDists,
+                                         col = colors)
+dev.off()
 ```
 
 _**Fig. 3.** Heatmap displaying distance matrix of genes expressed within and across samples._   
