@@ -312,6 +312,17 @@ deseq_object  <- DESeq(dds_htseq,
 vsd <- vst(deseq_object,
              blind = FALSE)
 
+vsd$stage <- gsub(pattern = "_", replacement = " ", vsd$stage)
+## Rename rownames:
+vsd$treatment_group <- gsub(pattern = "Insemination_group",
+                                        replacement = "AI group 1",
+                                        vsd$treatment_group)
+vsd$treatment_group <- gsub(pattern = "Insemination_with_dilutent",
+                                        replacement = "AI group 2",
+                                        vsd$treatment_group)
+vsd$treatment_group <- gsub(pattern = "Insemination_with_nothing",
+                                        replacement = "AI group 3",
+                                        vsd$treatment_group)
 ## Save object:
 saveRDS(object = vsd,
         file = "results/vsd_brain_treatment.rds")
