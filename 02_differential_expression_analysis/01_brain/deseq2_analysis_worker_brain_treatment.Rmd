@@ -14,7 +14,7 @@ The purpose of the present analysis is to examine similarities and differences i
 included treatment groups to examine changes in gene expression due to artificial insemination alone as well as the dilutant used during the insemination step.  
 
 ## Samples:  
-The 'brain' dataset consists of 74 samples:  
+The 'brain' dataset consists of 72 samples:  
 **Queen samples:** n = 24  
 - Control (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)
 - Insemination (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)  
