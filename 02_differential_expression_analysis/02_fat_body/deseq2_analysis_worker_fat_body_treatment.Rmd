@@ -693,7 +693,8 @@ deseq_object_results <- results(deseq_object,
 ## Extract significant phenotype genes:
 deseq_object_results$absL2FC <- abs(deseq_object_results$log2FoldChange)
 deseq_object_results_sig     <- subset(x = deseq_object_results,
-                                           padj < 0.05)
+                                           padj < 0.05 &
+                                         absL2FC >1)
 nrow(deseq_object_results_sig)
 
 ## Convert DESeq2 result object to a dataframe:
@@ -902,26 +903,31 @@ table(table(c(row.names(deseq_object_insemination_sig_up),
               row.names(dilutant_object_insemination_sig_up),
               row.names(injection_object_insemination_sig_up))))
 
+insemination_unique <- subset(x = deseq_object_insemination_sig_up,
+       !(row.names(deseq_object_insemination_sig_up) %in% 
+         c(row.names(dilutant_object_insemination_sig_up),
+           row.names(injection_object_insemination_sig_up))))
+
 ## Generate plot:
-treatment_comparison_plot <- plot(venneu_treatment_comparison,
+treatment_up_comparison_plot <- plot(venneu_treatment_comparison,
                                quantities = TRUE,
                                edges = TRUE,
                                labels = list(fontsize = 12))
 
 ## Print:
-treatment_comparison_plot
+treatment_up_comparison_plot
 
 pdf(file = "results/worker_fat_body_filter_elevated_degs_venn_diagram_degs.pdf",
     height = 10,
     width = 10)
-treatment_comparison_plot
+treatment_up_comparison_plot
 dev.off()
 
 ## For genes with reduced expression in response to treatment:
 venneu_treatment_comparison <- euler(combinations = list(
-                                                      "Insemination down-DEGs" = row.names(deseq_object_insemination_sig_down),
-                                                      "Dilutant down-DEGs" = row.names(dilutant_object_insemination_sig_down),
-                                                      "Injection down-DEGs" = row.names(injection_object_insemination_sig_down)),
+                                                      "AI Group I DEGs" = row.names(deseq_object_results_sig),
+                                                      "AI Group 2 DEGs" = row.names(dilutant_object_results_sig),
+                                                      "AI Group 3 DEGs" = row.names(injection_object_results_sig)),
                                      shape = "ellipse")
 
 ## Generate plot:
@@ -930,11 +936,206 @@ treatment_comparison_plot <- plot(venneu_treatment_comparison,
                                edges = TRUE,
                                labels = list(fontsize = 12))
 
-pdf(file = "results/worker_fat_body_filter_reduced_degs_venn_diagram_degs.pdf",
-    height = 10,
-    width = 10)
+pdf(file = "results/fat_body_worker/worker_fat_body_all_venn_diagram_degs.pdf",
+    height = 6,
+    width = 6)
 treatment_comparison_plot
 dev.off()
+
+insemination_down_unique <- subset(x = deseq_object_insemination_sig_down,
+                                   !(row.names(deseq_object_insemination_sig_down) %in% 
+                                       c(row.names(dilutant_object_insemination_sig_down),
+                                         row.names(injection_object_insemination_sig_down))))
+## Subset rows of interest:
+counts_df <- as.data.frame(counts(dds_htseq))
+counts_subset_df <- subset(x = counts_df,
+       row.names(counts_df) %in% c(row.names(insemination_unique),
+                                   row.names(insemination_down_unique)))
+
+head(assay(vsd))
+
+genes_of_interest <- c(row.names(insemination_unique),
+                                   row.names(insemination_down_unique))
+
+## Write to file:
+dir.create(path = "results/fat_body_worker/")
+write(x = genes_of_interest,
+      file = "results/fat_body_worker/inseminated_worker_elevated_gene_list.txt")
+
+## Normalise counts:
+normalised_counts <- t(scale(t(counts(dds_htseq)),
+                             center = TRUE,
+                             scale = TRUE))
+## Convert to dataframe:
+normalised_counts_df <- as.data.frame(normalised_counts)
+
+## Update header information on count dataframe:
+colnames(normalised_counts_df) <- subset(samples_info,
+                                         rownames(samples_info) %in% colnames(normalised_counts_df))$short_name
+
+## Subset rows for genes of interest:
+normalised_counts_unique_degs <- subset(normalised_counts_df,
+                                        row.names(normalised_counts_df) %in% genes_of_interest)
+
+## Cluster based on euclidean distance:
+dd <- hclust(dist(as.matrix(normalised_counts_unique_degs[, 1:ncol(normalised_counts_unique_degs)])))
+## Reorder:
+normalised_counts_ordered <- as.data.frame(normalised_counts_unique_degs[rev(dd$order), ])
+normalised_counts_ordered$locus <- row.names(normalised_counts_ordered)
+
+## Transform dataframe:
+normalised_counts_ordered_melt <- melt(normalised_counts_ordered)
+## Update column names:
+colnames(normalised_counts_ordered_melt) <- c("gene_name",
+                                              "sample",
+                                              "counts")
+## Update levels for plotting:
+normalised_counts_ordered_melt$gene_name <-
+  factor(normalised_counts_ordered_melt$gene_name,
+         levels = rev(unique(c(as.character(unlist(normalised_counts_ordered_melt$gene_name))))))
+
+## Assign the name of dataframe to plot:
+input <- normalised_counts_ordered_melt
+
+## Update levels for plotting:
+input$sample <- factor(input$sample,
+                       levels = unique(input$sample))
+
+## Subset based on control and inseminated individuals:
+input <- subset(x = input,
+                sample %in% subset(samples_info,
+                                    treatment_group %in% c("Control",
+                                             "Insemination_group"))$short_name)
+
+## Generate heatmap:
+heatmap_plot <- ggplot(input,
+                       aes(sample,
+                           gene_name)) +
+        geom_tile(aes(fill = counts)) +
+        geom_vline(xintercept = c(0.5,
+                                  12.5,
+                                  24.5)) +
+        scale_fill_gradient2(low = "black",
+                             mid = "white",
+                             high = "red") +
+        ylab("") +
+        xlab("") +
+        theme(legend.title = element_text(size = 10,
+                                          face = "bold"),
+              legend.text = element_text(size = 10,
+                                         face = "bold"),
+              axis.text.y = element_blank(),
+              axis.text.x = element_text(size = 8,
+                                         face = "bold",
+                                         angle = 90),
+              axis.title = element_blank(),
+              axis.ticks = element_blank(),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              legend.position = "top") +
+        labs(fill = "Normalised gene expression")
+
+## load in results from Gene Ontology term enrichment analysis:
+## Read in Gene Ontology terms enriched for resident genes:
+dir <- "../2022_gene_ontology_analysis/results/bterrestris_dmel/output_50_inseminated_worker_fat_body_fisher_weight01/"
+## Load output:
+inseminated_bp_terms <- read.table(file = paste(dir,
+                                              "BP_sig.txt",
+                                              sep = ""),
+                           header = TRUE)
+inseminated_bp_terms$log10 <- -log10(inseminated_bp_terms$weight_fisher)
+inseminated_bp_terms$category <- "BP"
+
+inseminated_mf_terms <- read.table(file = paste(dir,
+                                              "MF_sig.txt",
+                                              sep = ""),
+                           header = TRUE)
+inseminated_mf_terms$log10 <- -log10(inseminated_mf_terms$weight_fisher)
+inseminated_mf_terms$category <- "MF"
+
+inseminated_cc_terms <- read.table(file = paste(dir,
+                                              "CC_sig.txt",
+                                              sep = ""),
+                           header = TRUE)
+inseminated_cc_terms$log10 <- -log10(inseminated_cc_terms$weight_fisher)
+inseminated_cc_terms$category <- "CC"
+
+combined_terms_df <- rbind(inseminated_bp_terms,
+                        inseminated_mf_terms,
+                        inseminated_cc_terms)
+
+combined_terms_df_unique <- subset(combined_terms_df,
+                             !duplicated(combined_terms_df$GO.ID))
+
+## Reannotate:
+combined_terms_df_unique$Term <- gsub(pattern = "_",
+                                replacement = " ",
+                                combined_terms_df_unique$Term)
+
+## Create a column containing amend terms:
+combined_terms_df_unique$amended_terms <- paste(combined_terms_df_unique$Term,
+                                          " ",
+                                          "(",
+                                          combined_terms_df_unique$Annotated,
+                                          ")",
+                                          sep = "")
+
+## Generate plot:
+plot <- ggbarplot(combined_terms_df_unique,
+                  x = "amended_terms",
+                  y = "log10",
+                  width = 0.4,
+                  position = position_dodge(0.1),
+                  fill = "category",
+                  color = NULL,
+                  palette = "jco",
+                  sort.val = "asc",
+                  sort.by.groups = TRUE,
+                  ylab = "-log10(p)",
+                  xlab = "Enriched Gene Ontology term",
+                  legend.title = "Gene categories",
+                  #x.text.angle = 90,
+                  lab.col = "black",
+                  lab.size = 4,
+                  lab.vjust = 0.5,
+                  lab.hjust = 1,
+                  legend = "top",
+                  rotate = TRUE,
+                  ggtheme = theme_minimal())
+
+plot <- plot +
+                scale_y_continuous(expand = c(0, 0)) +
+                theme(axis.text = element_text(size = 8),
+                      axis.title.x = element_text(size = 10,
+                                                  face = "bold"),
+                      axis.title.y = element_text(size = 10,
+                                                  face = "bold"),
+                      axis.text.y = element_text(size = 8,
+                                                 face = "plain"),
+                      axis.text.x = element_text(size = 8),
+                      legend.position = "top",
+                      legend.title = element_text(size = 10,
+                                                  face = "bold")) +
+                #expand_limits(y = 3.5) +
+                geom_hline(yintercept = 1.301,
+                           linetype = "dashed",
+                           colour = "black")
+
+## Combine with heatmap:
+ggarrange(
+          heatmap_plot,
+          plot,
+          ncol = 2,
+          nrow = 1,
+          labels = c("A", "B"),
+          widths = c(1, 1))
+
+## Write to file:
+ggsave(filename = "results/fat_body_worker/combined_heatmap_barchart.pdf",
+       height = 6,
+       width = 12,
+       dpi = 600)
 ```
 _**Fig. 8.** Volcano plots displaying differences in gene expression across bumblebees differing in insemination status._   
 
