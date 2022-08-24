@@ -786,7 +786,7 @@ run_caste_deseq = function(specific_caste){
                                        design = ~stage +
                                                  treatment_group)
              ## Create a DESeq2 object:
-             dds_object  <- DESeq(dds,
+             dds_object  <<- DESeq(dds,
                                   test = "LRT",
                                   reduced = ~stage)
              ## Extract results:
@@ -799,7 +799,7 @@ worker_results_df <- as.data.frame(object_results)
 worker_results_df$absLog2FC <- abs(worker_results_df$log2FoldChange)
 nrow(subset(x = worker_results_df,
             padj < 0.05))
-nrow(subset(x = worker_results_df,
+genes_of_interest <- row.names(subset(x = worker_results_df,
             padj < 0.05 &
             absLog2FC >= 1))
 nrow(subset(x = worker_results_df,
@@ -857,6 +857,120 @@ write.table(x = worker_results_df,
 
 saveRDS(object = worker_results_df,
         file = "results/worker_specific_analysis/deseq_object_results_worker_treatment.rds")
+
+## AN ALTERNATIVE APPROACH:
+## Normalise counts:
+normalised_counts <- t(scale(t(counts(dds_object)),
+                             center = TRUE,
+                             scale = TRUE))
+## Convert to dataframe:
+normalised_counts_df <- as.data.frame(normalised_counts)
+## Update header information on count dataframe:
+colnames(normalised_counts_df) <- subset(samples_info,
+                                         rownames(samples_info) %in% colnames(normalised_counts_df))$short_name
+## Subset rows for genes of interest:
+normalised_counts_unique_degs <- subset(normalised_counts_df,
+                                        row.names(normalised_counts_df) %in% genes_of_interest)
+
+## Cluster based on euclidean distance:
+dd <- hclust(dist(as.matrix(normalised_counts_unique_degs[, 1:ncol(normalised_counts_unique_degs)])))
+## Reorder:
+normalised_counts_ordered <- as.data.frame(normalised_counts_unique_degs[rev(dd$order), ])
+normalised_counts_ordered$locus <- row.names(normalised_counts_ordered)
+## Create a name for plotting:
+#colnames(normalised_counts_ordered) <- c(paste(samples_info_worker$treatment_group,
+#                                               "-",
+#                                               samples_info_worker$stage,
+#                                               sep = ""),
+#                                         "locus")## Transform dataframe:
+normalised_counts_ordered_melt <- melt(normalised_counts_ordered)
+## Update column names:
+colnames(normalised_counts_ordered_melt) <- c("gene_name",
+                                              "sample",
+                                              "counts")
+## Update levels for plotting:
+normalised_counts_ordered_melt$gene_name <-
+  factor(normalised_counts_ordered_melt$gene_name,
+         levels = rev(unique(c(as.character(unlist(normalised_counts_ordered_melt$gene_name))))))
+
+## Assign the name of dataframe to plot:
+input <- normalised_counts_ordered_melt
+## Update levels for plotting:
+input$sample <- as.factor(input$sample)
+## Subset based on control and inseminated individuals:
+input <- subset(x = input,
+                sample %in% subset(samples_info,
+                                    treatment_group %in% c("Control",
+                                             "Insemination"))$short_name)
+## Subset worker info to reorder:
+samples_info_worker <- subset(x = samples_info,
+                              caste == "Worker")
+
+samples_info_worker_sorted <- samples_info_worker[with(samples_info_worker,
+                                                       order(samples_info_worker$stage,
+                                                             samples_info_worker$treatment_group)), ]
+
+input$sample <- factor(input$sample,
+                          levels = unique(samples_info_worker_sorted$short_name))
+dim(input)
+
+## Update sample names for plotting:
+for (name in 1:nrow(input)){
+  print(input$sample[[name]])
+  tmp <- as.character(unlist(input$sample[[name]]))
+  input$test[[name]]    <-            c(paste(subset(x = samples_info_worker,
+                          short_name == tmp)$treatment_group,
+                   " ",
+                   subset(x = samples_info_worker,
+                          short_name == tmp)$stage,
+                   " (",
+                   subset(x = samples_info_worker,
+                          short_name == tmp)$short_name,
+                   ")",
+                   sep = ""))
+  
+}  
+
+input$test <- gsub(pattern = "Stage_II",
+                   replacement = "Day_4",
+                   input$test)
+
+input$test <- gsub(pattern = "Stage_IV",
+                   replacement = "Day_8",
+                   input$test)
+
+input$test <- gsub(pattern = "Stage_I",
+                   replacement = "Day_2",
+                   input$test)
+
+## Generate heatmap:
+heatmap_plot <- ggplot(input,
+                       aes(test,
+                           gene_name)) +
+        geom_tile(aes(fill = counts)) +
+        geom_vline(xintercept = c(0.5,
+                                  12.5,
+                                  23.5)) +
+        scale_fill_gradient2(low = "black",
+                             mid = "white",
+                             high = "red") +
+        ylab("") +
+        xlab("") +
+        theme(legend.title = element_text(size = 10,
+                                          face = "bold"),
+              legend.text = element_text(size = 10,
+                                         face = "bold"),
+              axis.text.y = element_blank(),
+              axis.text.x = element_text(size = 8,
+                                         face = "bold",
+                                         angle = 90),
+              axis.title = element_blank(),
+              axis.ticks = element_blank(),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              legend.position = "top") +
+        labs(fill = "Normalised gene expression")
 ```
 
 Using all queen samples, **2196** genes were differentially expressed between inseminated and control bees (Fig. 10B). 
