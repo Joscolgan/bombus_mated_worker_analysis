@@ -283,7 +283,7 @@ rownames(sampleDistMatrix) <- paste( vsd$caste,
                                      vsd$stage,
                                      sep = " - " )
 colnames(sampleDistMatrix) <- NULL
-colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+colors <- colorRampPalette( rev(brewer.pal(9, "Blues")))(255)
 ```
 
 ```{r figure3, ref.label = "figure3", fig.width = 8, fig.height = 6, echo = FALSE, message=FALSE}
@@ -328,7 +328,8 @@ _**Fig. 3.** Heatmap displaying distance matrix of genes expressed within and ac
 
 ## Principal component analysis.  
 
-To examine further similarities in terms of expression profiles across samples, a principal component analysis using VST gene values was performed. The first principal component, which explains 55% of the variance in the dataset identifies the possibility of outliers with no clear difference explained by the first two components that separate caste. There was evidence that one of the treatments may be driving the pattern (Fig. 5). It was decided to rerun the PCA with the four samples separated by PC1 removed to provide more resolution on differences between samples    
+To examine further similarities in terms of expression profiles across samples, a principal component analysis using VST gene values was performed. The first principal component, which explains 55% of the variance in the dataset identifies the possibility of outliers with no clear difference explained by the first two components that separate caste. There was evidence that one of the treatments may be driving the pattern (Fig. 5). It was decided to rerun the PCA with the four samples separated by PC1 removed to provide more resolution on differences between samples.  
+
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Here set the two principal components that you want to compare:
 ## It can any combination between 1 and 22:
@@ -672,6 +673,7 @@ after the removal of outlier samples.
 ## Check names of comparisons:
 resultsNames(deseq_object)
 
+## Extract results:
 res <- results(deseq_object)
 ```
 
@@ -816,6 +818,7 @@ dilutant_volcano_plot <- ggplot(dilutant_object_results,
                                  "Dilutant-biased"),
                       name = "Status")
 ```
+
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 resultsNames(deseq_object)
 
@@ -880,7 +883,6 @@ injection_volcano_plot <- ggplot(injection_object_results,
                       name = "Status")
 ```
 
-
 ```{r figure9, ref.label = "figure9", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE, warning=FALSE}  
 ## Print to console:
 ## Examine also with a Euler plot:
@@ -903,16 +905,24 @@ pdf(file = "results/ovary_worker/worker_ovary_all_venn_diagram_degs.pdf",
 treatment_comparison_plot
 dev.off()
 
+## Extract DEGs that are unique to the insemination group:
+table(table(c(row.names(deseq_object_results_sig),
+              row.names(dilutant_object_results_sig),
+              row.names(injection_object_results_sig))))
+
+insemination_unique <- subset(x = deseq_object_results_sig,
+                              !(row.names(deseq_object_results_sig) %in% 
+                                  c(row.names(dilutant_object_results_sig),
+                                    row.names(injection_object_results_sig))))
+
 ## Subset rows of interest:
 counts_df <- as.data.frame(counts(dds_htseq))
 counts_subset_df <- subset(x = counts_df,
-       row.names(counts_df) %in% c(row.names(insemination_unique),
-                                   row.names(insemination_down_unique)))
+       row.names(counts_df) %in% c(row.names(insemination_unique)))
 head(assay(vsd))
 
 ## Extract genes of interest:
-genes_of_interest <- c(row.names(insemination_unique),
-                                   row.names(insemination_down_unique))
+genes_of_interest <- c(row.names(insemination_unique))
 
 ## Write to file:
 dir.create(path = "results/ovary_worker/")
