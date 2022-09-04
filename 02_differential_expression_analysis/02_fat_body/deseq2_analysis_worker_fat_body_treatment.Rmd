@@ -240,7 +240,6 @@ stage_aov <- aov(percentage ~ stage,
 summary(stage_aov)
 ```
 
-
 ```{r figure2, ref.label = "figure2", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
 ## Generate a multi-panel plot:
 ggarrange(density_treatment_plot,
@@ -672,6 +671,7 @@ after the removal of outlier samples.
 ## Check names of comparisons:
 resultsNames(deseq_object)
 
+## Extract results:
 res <- results(deseq_object)
 ```
 
@@ -879,7 +879,6 @@ injection_volcano_plot <- ggplot(injection_object_results,
                                  "injection-biased"),
                       name = "Status")
 ```
-
 
 ```{r figure9, ref.label = "figure9", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE, warning=FALSE}  
 ## Print to console:
