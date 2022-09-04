@@ -246,7 +246,6 @@ res.aov <- aov(percentage ~ treatment,
 summary(res.aov)
 ```
 
-
 ```{r figure2, ref.label = "figure2", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
 ## Generate a multi-panel plot:
 ggarrange(density_caste_plot,
@@ -614,6 +613,7 @@ deseq_object  <- DESeq(dds_htseq,
 ## Check names of comparisons:
 resultsNames(deseq_object)
 
+## Extract results:
 res <- results(deseq_object)
 ```
 
