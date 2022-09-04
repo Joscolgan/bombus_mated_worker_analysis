@@ -41,6 +41,8 @@ Second, density plots were generated for the percentage of expressed genes per s
 - Stage (Fig. 2C)  
 There was a significant difference  in terms of the mean percentage of expressed genes across castes (t-test; p = 0.04), but no difference between treatments (ANOVA; p = 0.5) and stage (ANOVA; p = 0.34).  
 
+1. Install and load libraries:
+
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Step One: Load libraries - if not present, install from scratch.
 # Load libraries; install from scratch if needed
@@ -73,6 +75,8 @@ dir.create("results")
 opts_chunk$set(fig.width = 12, fig.height = 8)
 ```
 
+2. Load input files:
+
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Set paths to folders containing output files from STAR
 paths <- list()
@@ -97,6 +101,8 @@ for (filenumber in 1:length(paths$htseq_files)) {
   }
 }
 ```
+
+3. Load sample information:
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 # Step Three: Put sample names and treatments into a samples dataframe for DESeqDataSetFromTximport
@@ -132,6 +138,8 @@ samples_info$file_name   <- row.names(samples_info)
 samples_info       <- samples_info[, c(5,6, 1:4)]
 samples_info$stage <- factor(samples_info$stage)
 ```
+
+4. Examine gene-level outlier samples:
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 #Step Three: Explore gene-level accounts across samples to identify potential outliers  
@@ -173,6 +181,8 @@ UpSetR::upset(fromList(new_list),
 dev.off()
 ```
 
+5. Generate UpSet plot of gene-level counts across samples:
+
 ```{r figure1, ref.label = "figure1", fig.width = 8, fig.height = 8, echo = FALSE, message=FALSE}
 UpSetR::upset(fromList(new_list),
                   nsets = 40,
@@ -185,6 +195,8 @@ UpSetR::upset(fromList(new_list),
 ```
 
 _**Fig. 1.** Upset plot displaying overlap in gene expression across all samples. For each sample, the number of expressed genes, as well as the overlap with other samples, are provided._  
+
+6. Generate density plots:
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Across all samples, the total number of genes detected:
@@ -244,6 +256,7 @@ stage_aov <- aov(percentage ~ stage,
 summary(stage_aov)
 ```
 
+7. Generate a combined density plot:
 
 ```{r figure2, ref.label = "figure2", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
 ## Generate a multi-panel plot:
@@ -264,6 +277,8 @@ _**Fig. 2.** Density plots displaying percentage of genes expressed across sampl
 ## Sample clustering.  
 To examine general similarities and differences within and between group, a distance matrix based
 on variance stabilising transformed (VST) counts was performed. This did highlight one sample "37" as being quite different from the rest in terms of expression profiles.  
+
+8. Generate normalised counts:
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Create a DESeq2 object:
@@ -289,6 +304,8 @@ rownames(sampleDistMatrix) <- paste( vsd$caste,
 colnames(sampleDistMatrix) <- NULL
 colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
 ```
+
+9. Create input files for distance matrix:
 
 ```{r figure3, ref.label = "figure3", fig.width = 8, fig.height = 6, echo = FALSE, message=FALSE}
 ## Rename rownames:
@@ -332,7 +349,10 @@ _**Fig. 3.** Heatmap displaying distance matrix of genes expressed within and ac
 
 ## Principal component analysis.  
 
-To examine further similarities in terms of expression profiles across samples, a principal component analysis using VST gene values was performed. The first principal component, which explains 55% of the variance in the dataset identifies the possibility of outliers with no clear difference explained by the first two components that separate caste. There was evidence that one of the treatments may be driving the pattern (Fig. 5). It was decided to rerun the PCA with the four samples separated by PC1 removed to provide more resolution on differences between samples    
+To examine further similarities in terms of expression profiles across samples, a principal component analysis using VST gene values was performed. The first principal component, which explains 55% of the variance in the dataset identifies the possibility of outliers with no clear difference explained by the first two components that separate caste. There was evidence that one of the treatments may be driving the pattern (Fig. 5). It was decided to rerun the PCA with the four samples separated by PC1 removed to provide more resolution on differences between samples.  
+
+10. Visualisation of PCA output:  
+
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Here set the two principal components that you want to compare:
 ## It can any combination between 1 and 22:
@@ -676,6 +696,7 @@ after the removal of outlier samples.
 ## Check names of comparisons:
 resultsNames(deseq_object)
 
+## Extract results:
 res <- results(deseq_object)
 ```
 
@@ -835,6 +856,7 @@ dilutant_volcano_plot <- ggplot(dilutant_object_results,
                                  "Dilutant-biased"),
                       name = "Status")
 ```
+
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 resultsNames(deseq_object)
 
@@ -899,8 +921,7 @@ injection_volcano_plot <- ggplot(injection_object_results,
                       name = "Status")
 ```
 
-
-```{r figure9, ref.label = "figure9", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE, warning=FALSE}  
+```{r figure9, ref.label = "figure9", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE, warning=FALSE} 
 ## Print to console:
 ggarrange(volcano_plot,
           dilutant_volcano_plot,
@@ -1098,13 +1119,14 @@ combined_terms_df <- rbind(inseminated_bp_terms,
                         inseminated_mf_terms,
                         inseminated_cc_terms)
 
+## Remove potential duplicated entries:
 combined_terms_df_unique <- subset(combined_terms_df,
                              !duplicated(combined_terms_df$GO.ID))
 
 ## Reannotate:
 combined_terms_df_unique$Term <- gsub(pattern = "_",
-                                replacement = " ",
-                                combined_terms_df_unique$Term)
+                                      replacement = " ",
+                                      combined_terms_df_unique$Term)
 
 ## Create a column containing amend terms:
 combined_terms_df_unique$amended_terms <- paste(combined_terms_df_unique$Term,
@@ -1160,7 +1182,8 @@ ggarrange(heatmap_plot,
           plot,
           ncol = 2,
           nrow = 1,
-          labels = c("A", "B") )
+          labels = c("A",
+                     "B"))
 
 ## Write to file:
 ggsave(filename = "results/brain_worker/combined_heatmap_barchart.pdf",
