@@ -6,6 +6,7 @@ Load libraries:
 #install.packages("BiocManager") 
 #BiocManager::install("WGCNA") 
 library(WGCNA)
+library(DESeq2)
 ```
 
 Load input data:
@@ -105,7 +106,8 @@ colnames(samples_information) <- c("caste",
                                    "stage",
                                    "treatment")
 ## Remove outlier:
-samples_information <- samples_information[keepSamples, ]
+samples_information <- subset(samples_information,
+                              row.names(samples_information) %in% row.names(transposed_data_filt))
 ```
 
 We now have the expression data in the variable datExpr, and the corresponding clinical traits in the variable datTraits. Before we continue with network construction and module detection, we visualize how the clinical traits relate to the sample dendrogram.  
@@ -117,11 +119,23 @@ exp_sampleTree2 = hclust(dist(transposed_data_filt),
                          method = "average")
 # Convert traits to a color representation: white means low, red means high, grey means missing entry
 exp_traitColors = numbers2colors(samples_information, signed = FALSE);
-# Plot the sample dendrogram and the colors underneath.
+
+exp_sampleTree2$labels <- gsub(pattern = ".ReadsPerGene.out.tab",
+                               replacement = "",
+                               exp_sampleTree2$labels)
+
+# Plot the sample dendrogram and the colors underneath:
+pdf(file = "results/sample_dendrogram_trait_heatmap.pdf",
+    height = 6,
+    width = 8)
 plotDendroAndColors(exp_sampleTree2,
                     exp_traitColors,
-                  groupLabels = names(samples_information),
+                  groupLabels = gsub(pattern = ".ReadsPerGene.out.tab",
+                  replacement = "",
+                  names(samples_information)),
                   main = "Sample dendrogram and trait heatmap")
+dev.off()
+
 
 saveRDS(object = exp_sampleTree2, file = "results/exp_sampleTree2_spermatheca.rds")
 saveRDS(object = exp_traitColors, file = "results/exp_traitColors_spermatheca.rds")
@@ -228,7 +242,8 @@ exp_MEs = exp_MEList$eigengenes
 # Calculate dissimilarity of module eigengenes
 exp_MEDiss = 1-cor(exp_MEs);
 # Cluster module eigengenes
-exp_METree = hclust(as.dist(exp_MEDiss), method = "average");
+exp_METree = hclust(as.dist(exp_MEDiss),
+                    method = "average");
 # Plot the result
 sizeGrWindow(7, 6)
 plot(exp_METree, main = "Clustering of module eigengenes",
@@ -303,8 +318,11 @@ sizeGrWindow(10,6)
 exp_textMatrix = paste(signif(exp_moduleTraitCor, 2), "\n(",
                         signif(exp_moduleTraitPvalue, 1), ")", sep = "");
 dim(exp_textMatrix) = dim(exp_moduleTraitCor)
+# Display the correlation values within a heatmap plot:
+pdf(file = "results/module-trait_relationship_heatmap.pdf",
+    height = 6,
+    width = 8)
 par(mar = c(6, 8.5, 3, 3));
-# Display the correlation values within a heatmap plot
 labeledHeatmap(Matrix = exp_moduleTraitCor,
              xLabels = names(samples_information),
              yLabels = names(exp_MEs),
@@ -316,6 +334,7 @@ labeledHeatmap(Matrix = exp_moduleTraitCor,
              cex.text = 0.5,
              zlim = c(-1,1),
              main = paste("Module-trait relationships"))
+dev.off()
 
 # Save module colors and labels for use in subsequent parts
 save(exp_MEs, exp_moduleTraitCor, samples_information, exp_textMatrix, file = "results/spermatheca-03-input_for_labelled_heatmap.RData")
@@ -328,21 +347,6 @@ The analysis identifies the several significant module–trait associations. We 
 We quantify associations of individual genes with our trait of interest (weight) by defining Gene Significance GS as (the absolute value of) the correlation between the gene and the trait. For each module, we also define a quantitative measure of module membership MM as the correlation of the module eigengene and the gene expression profile. This allows us to quantify the similarity of all genes on the array to every module.
 
 ```{r, message = FALSE}
-# Define variable weight containing the weight column of datTrait
-weight = as.data.frame(datTraits$weight_g);
-names(weight) = "weight"
-# names (colors) of the modules
-modNames = substring(names(MEs), 3)
-geneModuleMembership = as.data.frame(cor(datExpr, MEs, use = "p"));
-MMPvalue = as.data.frame(corPvalueStudent(as.matrix(geneModuleMembership), nSamples));
-
-names(geneModuleMembership) = paste("MM", modNames, sep="");
-names(MMPvalue) = paste("p.MM", modNames, sep="");
-geneTraitSignificance = as.data.frame(cor(datExpr, weight, use = "p"));
-GSPvalue = as.data.frame(corPvalueStudent(as.matrix(geneTraitSignificance), nSamples));
-names(geneTraitSignificance) = paste("GS.", names(weight), sep="");
-names(GSPvalue) = paste("p.GS.", names(weight), sep="")
-
 # Define variable treatment containing the treatment column of samples information
 treatment = as.data.frame(samples_information$treatment);
 names(treatment) = "treatment"
@@ -369,20 +373,7 @@ names(exp_GSPvalue) = paste("p.GS.", names(treatment), sep="")
 Using the GS and MM measures, we can identify genes that have a high significance for weight as well as high module membership in interesting modules. As an example, we look at the brown module that has the highest association with weight. We plot a scatterplot of Gene Significance vs. Module Membership in the brown module:  
 
 ```{r, message = FALSE}
-module = "brown"
-column = match(module, modNames);
-moduleGenes = moduleColors==module;
-sizeGrWindow(7, 7);
-par(mfrow = c(1,1));
-verboseScatterplot(abs(geneModuleMembership[moduleGenes, column]),
-                   abs(geneTraitSignificance[moduleGenes, 1]),
-                 xlab = paste("Module Membership in", module, "module"),
-                 ylab = "Gene significance for body weight",
-                 main = paste("Module membership vs. gene significance\n"),
-                 cex.main = 1.2, cex.lab = 1.2, cex.axis = 1.2, col = module)
-
-
-exp_module = "red"
+exp_module = "yellow"
 exp_column = match(exp_module, exp_modNames);
 exp_moduleGenes = exp_moduleColors==exp_module;
 sizeGrWindow(7, 7);
@@ -401,6 +392,34 @@ save(exp_geneModuleMembership,
      exp_column,
      exp_geneTraitSignificance,
      file = "results/spermatheca-04-input_for_membership_scatterplot_red.RData")
+
+## Generate a combined plot:
+pdf(file = "results/module-trait_relationship_heatmap_combined.pdf",
+    height = 6,
+    width = 12)
+par(mfrow=c(1,2),
+    mar = c(6, 8.5, 3, 3));
+labeledHeatmap(Matrix = exp_moduleTraitCor,
+             xLabels = names(samples_information),
+             yLabels = names(exp_MEs),
+             ySymbols = names(exp_MEs),
+             colorLabels = FALSE,
+             colors = blueWhiteRed(50),
+             textMatrix = exp_textMatrix,
+             setStdMargins = FALSE,
+             cex.text = 0.5,
+             zlim = c(-1,1),
+             main = paste("Module-trait relationships"))
+verboseScatterplot(abs(exp_geneModuleMembership[exp_moduleGenes, exp_column]),
+                   abs(exp_geneTraitSignificance[exp_moduleGenes, 1]),
+                 xlab = paste("Module Membership in", exp_module, "module"),
+                 ylab = "Gene significance for treatment",
+                 main = paste("Module membership vs. gene significance\n"),
+                 cex.main = 1.2,
+                 cex.lab = 1.2,
+                 cex.axis = 1.2,
+                 col = exp_module)
+dev.off()
 ```
 
 
@@ -492,7 +511,7 @@ One way to visualize a weighted network is to plot its heatmap, Fig. 1. Each row
 ```{r, message = FALSE}
 # Calculate topological overlap anew: this could be done more efficiently by saving the TOM
 # calculated during module detection, but let us do it again here.
-dissTOM = 1-TOMsimilarityFromExpr(datExpr, power = 6);
+dissTOM = 1-TOMsimilarityFromExpr(transposed_data_filt, power = 6);
 # Transform dissTOM with a power to make moderately strong connections more visible in the heatmap
 plotTOM = dissTOM^7;
 # Set diagonal to NA for a nicer plot
