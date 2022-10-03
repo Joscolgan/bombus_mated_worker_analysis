@@ -634,7 +634,9 @@ _**Fig. 6.** Principal component analysis with first two principal components sh
 ## Calculate principal components:
 pca <- prcomp(t(assay(vsd)))
 
+## Convert to a dataframe:
 pca_df <- as.data.frame(pca$x)
+
 ## check the proportion of variance explained by each PC:
 summary(pca)
 ```
@@ -642,6 +644,7 @@ summary(pca)
 Generate a combined plot:
 
 ```{r, message = FALSE}
+## Generate a combined plot:
 pca_combined <- ggarrange(
           group_plot_pc1_2,
           group_plot_pc1_3,
@@ -720,7 +723,8 @@ saveRDS(object = deseq_object,
 ## Extract significant phenotype genes:
 deseq_object_results$absL2FC <- abs(deseq_object_results$log2FoldChange)
 deseq_object_results_sig     <- subset(x = deseq_object_results,
-                                           padj < 0.05)
+                                           padj < 0.05 &
+                                         absL2FC >1)
 nrow(deseq_object_results_sig)
 
 ## Convert DESeq2 result object to a dataframe:
@@ -858,6 +862,7 @@ dilutant_volcano_plot <- ggplot(dilutant_object_results,
 ```
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
+## Check results:
 resultsNames(deseq_object)
 
 ## Extract results:
@@ -949,73 +954,51 @@ insemination_unique <- subset(x = deseq_object_insemination_sig_up,
            row.names(injection_object_insemination_sig_up))))
 
 ## Generate plot:
-treatment_comparison_plot <- plot(venneu_treatment_comparison,
+treatment_up_comparison_plot <- plot(venneu_treatment_comparison,
                                quantities = TRUE,
                                edges = TRUE,
                                labels = list(fontsize = 12))
-
-pdf(file = "results/brain_worker/worker_brain_filter_elevated_degs_venn_diagram_degs.pdf",
+## Print:
+treatment_up_comparison_plot
+pdf(file = "results/worker_brain_filter_elevated_degs_venn_diagram_degs.pdf",
     height = 10,
     width = 10)
-treatment_comparison_plot
+treatment_up_comparison_plot
 dev.off()
 
-saveRDS(object = deseq_object_results,
-        file = "results/brain_worker/worker_deseq_object_results_treatment.rds")
-
+## For genes with reduced expression in response to treatment:
 venneu_treatment_comparison <- euler(combinations = list(
-                                                      "Insemination down-DEGs" = row.names(deseq_object_insemination_sig_down),
-                                                      "Dilutant down-DEGs" = row.names(dilutant_object_insemination_sig_down),
-                                                      "Injection down-DEGs" = row.names(injection_object_insemination_sig_down)),
+                                                      "AI Group I DEGs" = row.names(deseq_object_results_sig),
+                                                      "AI Group 2 DEGs" = row.names(dilutant_object_results_sig),
+                                                      "AI Group 3 DEGs" = row.names(injection_object_results_sig)),
                                      shape = "ellipse")
-
 ## Generate plot:
 treatment_comparison_plot <- plot(venneu_treatment_comparison,
                                quantities = TRUE,
                                edges = TRUE,
                                labels = list(fontsize = 12))
-
-pdf(file = "results/brain_worker/worker_brain_filter_reduced_degs_venn_diagram_degs.pdf",
-    height = 10,
-    width = 10)
+pdf(file = "results/brain_worker/worker_brain_all_venn_diagram_degs.pdf",
+    height = 6,
+    width = 6)
 treatment_comparison_plot
 dev.off()
-
 insemination_down_unique <- subset(x = deseq_object_insemination_sig_down,
                                    !(row.names(deseq_object_insemination_sig_down) %in% 
                                        c(row.names(dilutant_object_insemination_sig_down),
                                          row.names(injection_object_insemination_sig_down))))
-
-## Explore expression:
-library("pheatmap")
-library(dplyr)
-
 ## Subset rows of interest:
 counts_df <- as.data.frame(counts(dds_htseq))
 counts_subset_df <- subset(x = counts_df,
        row.names(counts_df) %in% c(row.names(insemination_unique),
                                    row.names(insemination_down_unique)))
-
 head(assay(vsd))
-
 genes_of_interest <- c(row.names(insemination_unique),
                                    row.names(insemination_down_unique))
 ## Write to file:
+dir.create(path = "results/brain/")
 write(x = genes_of_interest,
-      file = "results/brain_worker/inseminated_worker_elevated_gene_list.txt")
+      file = "results/brain/inseminated_worker_elevated_gene_list.txt")
 
-select <- row.names(counts_df) %in% genes_of_interest
-
-select <- order(rowMeans(counts(dds_htseq,normalized=FALSE)),
-                decreasing=TRUE)[1:20]
-df <- as.data.frame(colData(dds_htseq)[,c("stage","treatment_group")])
-pheatmap(assay(vsd)[select, 23:45],
-         cluster_rows=TRUE,
-         show_rownames=FALSE,
-         cluster_cols=FALSE,
-         annotation_col=df)
-
-## AN ALTERNATIVE APPROACH:
 ## Normalise counts:
 normalised_counts <- t(scale(t(counts(dds_htseq)),
                              center = TRUE,
