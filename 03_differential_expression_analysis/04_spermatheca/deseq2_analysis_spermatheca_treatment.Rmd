@@ -129,6 +129,22 @@ dds_htseq <- DESeqDataSetFromHTSeqCount(sampleTable = samples_info,
                                        design = ~ caste +
                                                   stage +
                                                   treatment_group)
+
+## Extract and save counts:
+dds_htseq_counts <- counts(dds_htseq)
+colnames(dds_htseq_counts) <- gsub(pattern = ".ReadsPerGene.out.tab",
+                                   replacement = "",
+                                   colnames(dds_htseq_counts))
+
+## Save to file:
+write.table(x = dds_htseq_counts,
+            file = "results/all_spermatheca_counts.txt",
+            row.names = TRUE,
+            col.names = TRUE,
+            quote = FALSE,
+            sep = "\t")
+
+## Remove lowly expressed genes:
 keep <- rowSums(counts(dds_htseq)) >= 10
 dds_htseq <- dds_htseq[keep, ]
 
@@ -281,6 +297,18 @@ deseq_object  <- DESeq(dds_htseq,
 vsd <- vst(deseq_object,
              blind = FALSE)
 
+## Transform gene-level counts using variance-stablising transformtion:
+vsd <- vst(deseq_object,
+             blind = FALSE)
+
+vsd$stage <- gsub(pattern = "_", replacement = " ", vsd$stage)
+
+
+## Rename rownames:
+vsd$treatment_group <- gsub(pattern = "Insemination",
+                            replacement = "AI Group 1",
+                            vsd$treatment_group)
+
 ## Update stage:
 vsd$stage <- gsub(pattern = "Stage_IV",
                             replacement = "Day 8",
@@ -306,7 +334,7 @@ rownames(sampleDistMatrix) <- paste( vsd$caste,
                                      vsd$stage,
                                      sep = " - " )
 colnames(sampleDistMatrix) <- NULL
-colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+colors <- colorRampPalette( rev(brewer.pal(9, "Blues")))(255)
 ```
 
 ```{r figure3, ref.label = "figure3", fig.width = 8, fig.height = 6, echo = FALSE, message=FALSE}
@@ -322,27 +350,12 @@ dev.off()
 
 _**Fig. 3.** Heatmap displaying distance matrix of genes expressed within and across samples._   
 
-```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
-#poisd <- PoissonDistance(t(counts(dds_htseq)))
-
-#samplePoisDistMatrix <- as.matrix(poisd$dd)
-#rownames(samplePoisDistMatrix) <- paste(dds_htseq$caste,
-#                                        dds_htseq$treatment_group,
-#                                        sep=" - " )
-#colnames(samplePoisDistMatrix) <- NULL
-```
-
-```{r figure4, ref.label = "figure4", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
-#pheatmap(samplePoisDistMatrix,
-#         clustering_distance_rows = poisd$dd,
-#         clustering_distance_cols = poisd$dd)
-```
-
 \newpage  
 
 ## Principal component analysis.  
 
 To examine further similarities in terms of expression profiles across samples, a principal component analysis using VST gene values was performed. The first principal component, which explains 67% of the variance in the dataset, clearly separates workers and queens indicating caste-specific profiles in terms of gene expression in the spermatheca. The second principal component, which explains 11% of the variance, separates individuals based on treatment (i.e., whether they are inseminated or not). The third principal component, which explains 8% of the variance separates sample 37 from the rest of the bees, which is in line with previous analyses that this sample has quite an extreme expression profile in comparison to the other samples.  
+
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Here set the two principal components that you want to compare:
 ## It can any combination between 1 and 22:
@@ -444,13 +457,13 @@ caste_plot_pc1_4 <- caste_plot_pc1_4 +
 ```
 
 ```{r figure6, ref.label = "figure6", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
-caste_combined <- ggarrange(caste_plot_pc1_2,
+combined_caste_plot <- ggarrange(caste_plot_pc1_2,
           caste_plot_pc1_3,
           caste_plot_pc1_4,
           nrow = 1,
           ncol = 3,
           align = "hv",
-          legend = "none")
+          common.legend = TRUE)
 ```
 
 _**Fig. 4.** Principal component analysis with first two principal components shown. Individuals are coloured by caste (queen = "red"; worker = "blue)._  
@@ -462,38 +475,34 @@ group_plot_pc1_2 <- plotPCA.san(vsd,
                           second_pc = 2,
             intgroup = c("treatment_group"))
 group_plot_pc1_2 <- group_plot_pc1_2 +
-  scale_fill_manual(name = "Treatment",
-                    values = c("blue",
-                               "yellow"))
+  scale_fill_brewer(name = "Treatment",
+                    palette = "Blues")
 
 group_plot_pc1_3 <- plotPCA.san(vsd,
                           first_pc = 1,
                           second_pc = 3,
             intgroup = c("treatment_group"))
 group_plot_pc1_3 <- group_plot_pc1_3 +
-    labs(x = NULL) +
-  scale_fill_manual(name = "Treatment",
-                    values = c("blue",
-                               "yellow"))
+  scale_fill_brewer(name = "Treatment",
+                    palette = "Blues")
+
 group_plot_pc1_4 <- plotPCA.san(vsd,
                           first_pc = 1,
                           second_pc = 4,
             intgroup = c("treatment_group"))
 group_plot_pc1_4 <- group_plot_pc1_4 +
-  labs(x = NULL) +
-  scale_fill_manual(name = "Treatment",
-                    values = c("blue",
-                               "yellow"))
+  scale_fill_brewer(name = "Treatment",
+                    palette = "Blues")
 ```
 
 ```{r figure5, ref.label = "figure5", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
-group_combined <- ggarrange(group_plot_pc1_2,
+combined_group_plot <- ggarrange(group_plot_pc1_2,
           group_plot_pc1_3,
           group_plot_pc1_4,
           nrow = 1,
           ncol = 3,
           align = "hv",
-          legend = "none")
+          common.legend = TRUE)
 ```
 
 _**Fig. 5.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (control = "red"; inseminated group = "blue)._  
@@ -504,7 +513,7 @@ stage_plot_pc1_2 <- plotPCA.san(vsd,
                           second_pc = 2,
             intgroup = c("stage"))
 stage_plot_pc1_2 <- stage_plot_pc1_2 +
-  scale_fill_manual(name = "Stage",
+  scale_fill_manual(name = "Age",
                     values = c("black",
                                "grey",
                                "white"))
@@ -514,7 +523,7 @@ stage_plot_pc1_3 <- plotPCA.san(vsd,
                           second_pc = 3,
             intgroup = c("stage"))
 stage_plot_pc1_3 <- stage_plot_pc1_3 +
-  scale_fill_manual(name = "Stage",
+  scale_fill_manual(name = "Age",
                     values = c("black",
                                "grey",
                                "white"))
@@ -524,41 +533,42 @@ stage_plot_pc1_4 <- plotPCA.san(vsd,
                           second_pc = 4,
             intgroup = c("stage"))
 stage_plot_pc1_4 <- stage_plot_pc1_4 +
-  scale_fill_manual(name = "Stage",
+  scale_fill_manual(name = "Age",
                     values = c("black",
                                "grey",
                                "white"))
 ```
 
 ```{r figure7, ref.label = "figure7", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
-stage_combined <- ggarrange(stage_plot_pc1_2,
+combined_stage_plot <- ggarrange(stage_plot_pc1_2,
           stage_plot_pc1_3,
           stage_plot_pc1_4,
           nrow = 1,
           ncol = 3,
           align = "hv",
-          legend = "none")
+          common.legend = TRUE)
 ```
 _**Fig. 6.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (two days = "red"; four days = "green"; eight days = "blue")_    
 
 ```{r, message = FALSE}
 ## Generate a combined plot:
-ggarrange(caste_plot_pc1_2,
-          caste_plot_pc1_3,
-          caste_plot_pc1_4,
-          group_plot_pc1_2,
-          group_plot_pc1_3,
-          group_plot_pc1_4,
-          stage_plot_pc1_2,
-          stage_plot_pc1_3,
-          stage_plot_pc1_4,
+pca_combined <- ggarrange(combined_caste_plot,
+                          combined_group_plot,
+                          combined_stage_plot,
           nrow = 3,
-          ncol = 3,
-          legend = "none",
-          align = "hv") +
-  theme(plot.margin = margin(0,0,0,0)) %>%
-  ggexport(filename = "results/spermatheca_pca_scatterplots.pdf",
-           res = 600)
+          ncol = 1,
+          labels = c("A",
+                     "B",
+                     "C"),
+          align = "hv")
+
+## Print to console:
+(pca_combined)
+
+## Save to file:
+ggsave(filename = "results/spermatheca_full_pca_plot.pdf",
+       height = 8,
+       width = 8)
 ```
 
 
@@ -567,16 +577,6 @@ ggarrange(caste_plot_pc1_2,
 pca <- prcomp(t(assay(vsd)))
 
 pca_df <- as.data.frame(pca$x)
-
-samples_info_reduced <- samples_info[samples_to_keep, ]
-pca_df$stage <- samples_info_reduced$stage
-
-## Plot PCA:
-#ggplot(data = pca_df, aes(x = PC1, y = PC3, colour = stage)) +
-#  geom_point()
-
-## check the proportion of variance explained by each PC:
-summary(pca)
 ```
 
 ## Differential expression analysis:  
@@ -916,7 +916,7 @@ dim(input)
 
 ## Update sample names for plotting:
 for (name in 1:nrow(input)){
-  print(input$sample[[name]])
+  #print(input$sample[[name]])
   tmp <- as.character(unlist(input$sample[[name]]))
   input$test[[name]]    <-            c(paste(subset(x = samples_info_worker,
                           short_name == tmp)$treatment_group,
@@ -1021,6 +1021,7 @@ write.table(x = worker_results_df,
 saveRDS(object = worker_results_df,
         file = "results/queen_specific_analysis/deseq_object_results_queen_treatment.rds")
 ```
+
 ```{r figure10, ref.label = "figure10", fig.width = 6, fig.height = 4, echo = FALSE, message=FALSE, warning=FALSE}
 ## Print to console:
 volcano_castes <- ggarrange(volcano_worker,
@@ -1047,6 +1048,14 @@ worker_object_results_sig <- subset(worker_results_df,
 queen_object_results_sig <- subset(queen_results_df,
                                     padj < 0.05 &
                                     absLog2FC >= 1)
+
+## Extract genes found in both comparisons:
+comp_counts <- as.data.frame(table(c(rownames(worker_object_results_sig),
+                         rownames(queen_object_results_sig))))
+
+## Subset:
+comp_counts_conserved <- subset(comp_counts,
+                                Freq == 2)
 
 ## Compare overlap of differentially expressed genes:
 venneu_tissue_comparison <- euler(combinations = list("Worker DEGs" = row.names(worker_object_results_sig),
@@ -1079,19 +1088,19 @@ worker_object_results_reordered <- worker_object_results_ordered[match(row.names
 head(worker_object_results_reordered)
 head(queen_object_results_ordered)
 
-tmp <- as.data.frame(cbind(row.names(worker_object_results_reordered),
+combined_df <- as.data.frame(cbind(row.names(worker_object_results_reordered),
                            worker_object_results_reordered$log2FoldChange,
                            worker_object_results_reordered$padj,
                            queen_object_results_ordered$log2FoldChange,
                            queen_object_results_ordered$padj))
 
-tmp$worker_rank <- worker_object_results_reordered$rank
-tmp$queen_rank <- row.names(tmp)
+combined_df$worker_rank <- worker_object_results_reordered$rank
+combined_df$queen_rank <- row.names(combined_df)
 
-tmp$V2 <- as.numeric(as.character(unlist(tmp$V2)))
-tmp$V3 <- as.numeric(as.character(unlist(tmp$V3)))
-tmp$V4 <- as.numeric(as.character(unlist(tmp$V4)))
-tmp$V5 <- as.numeric(as.character(unlist(tmp$V5)))
+combined_df$V2 <- as.numeric(as.character(unlist(combined_df$V2)))
+combined_df$V3 <- as.numeric(as.character(unlist(combined_df$V3)))
+combined_df$V4 <- as.numeric(as.character(unlist(combined_df$V4)))
+combined_df$V5 <- as.numeric(as.character(unlist(combined_df$V5)))
 ```
 
 To further examine similarities in terms of gene expression in response to insemination,
@@ -1101,23 +1110,13 @@ identifying a significant positive correlation ( _R_ = 0.47, *p* < 0.05; Fig. 12
 
 ```{r figure12, ref.label = "figure12", fig.width = 6, fig.height = 4, fig.align = 'center', echo = FALSE, message=FALSE, warning=FALSE}
 ## Generate a scatterplot:
-scatterplot <- ggplot(data = tmp,
+scatterplot <- ggplot(data = combined_df,
        aes(x = V2,
            y = V4)) +
   xlab(label = "Worker: log2FC") +
   ylab(label = "Queen: log2FC") +
   geom_point(alpha = 0.5) +
   geom_smooth(method = "lm") +
-  #geom_point(data = subset(x = tmp,
-  #                         V3 <= 0.05 &
-  #                         abs(V2) >= 1),
-  #                         colour = "red",
-  #           alpha = 0.5) +
-  #geom_point(data = subset(x = tmp,
-  #                         V5 <= 0.05 &
-  #                           abs(V4) >= 1),
-  #                         colour = "blue",
-  #           alpha = 0.5) +
   theme_bw() +
   theme(axis.title = element_text(face = "bold",
                                   size = 12)) +
@@ -1127,6 +1126,137 @@ scatterplot <- ggplot(data = tmp,
 _**Fig. 12.** Scatterplot of correlation between log2 fold change in gene expression for inseminated and control for both bumblebee workers and queens. Each individual point represents a gene with coloured points representing genes with statistically significant differences in gene expression between treatment groups. Different colours represent different castes (red = worker, blue = queen, purple = overlap)._  
 
 ```{r, message = FALSE}
+## Lastly, generate a heatmap for normalised gene expression for genes
+## consistently differentially expressed in both castes:
+## Use all individuals:
+dds_htseq <- DESeqDataSetFromHTSeqCount(sampleTable = samples_info,
+                                       directory = directory,
+                                       design = ~ caste +
+                                                  stage +
+                                                  treatment_group)
+
+keep <- rowSums(counts(dds_htseq)) >= 10
+dds_htseq <- dds_htseq[keep, ]
+
+## Normalise counts:
+normalised_counts <- t(scale(t(counts(dds_htseq)),
+                             center = TRUE,
+                             scale = TRUE))
+
+## Convert to dataframe:
+normalised_counts_df <- as.data.frame(normalised_counts)
+
+## Subset rows for genes of interest:
+normalised_counts_unique_degs <- subset(normalised_counts_df,
+                                        row.names(normalised_counts_df) %in% comp_counts_conserved$Var1)
+
+## Cluster based on euclidean distance:
+dd <- hclust(dist(as.matrix(normalised_counts_unique_degs[, 1:ncol(normalised_counts_unique_degs)])))
+## Reorder:
+normalised_counts_ordered <- as.data.frame(normalised_counts_unique_degs[rev(dd$order), ])
+normalised_counts_ordered$locus <- row.names(normalised_counts_ordered)
+## Transform dataframe:
+normalised_counts_ordered_melt <- melt(normalised_counts_ordered)
+## Update column names:
+colnames(normalised_counts_ordered_melt) <- c("gene_name",
+                                              "sample",
+                                              "counts")
+
+## Update levels for plotting:
+normalised_counts_ordered_melt$gene_name <-
+  factor(normalised_counts_ordered_melt$gene_name,
+         levels = rev(unique(c(as.character(unlist(normalised_counts_ordered_melt$gene_name))))))
+
+samples_info$short_name <- gsub(pattern = ".ReadsPerGene.out.tab",
+                                replacement = "",
+                                samples_info$sample_name) 
+
+## Assign the name of dataframe to plot:
+input <- normalised_counts_ordered_melt
+
+input$sample <- gsub(pattern = ".ReadsPerGene.out.tab",
+                                replacement = "",
+                                input$sample)
+## Update levels for plotting:
+input$sample <- factor(input$sample,
+                       levels = unique(input$sample))
+
+samples_info_sorted <- samples_info[with(samples_info,
+                                                order(samples_info$stage,
+                                                      samples_info$treatment_group)), ]
+
+input$sample <- factor(input$sample,
+                          levels = unique(samples_info_sorted$short_name))
+dim(input)
+
+## Update sample names for plotting:
+for (name in 1:nrow(input)){
+  #print(input$sample[[name]])
+  tmp <- as.character(unlist(input$sample[[name]]))
+  input$test[[name]]    <-            c(paste(subset(x = samples_info,
+                          short_name == tmp)$treatment_group,
+                   " ",
+                  subset(x = samples_info,
+                          short_name == tmp)$caste,
+                   " (",
+                   subset(x = samples_info,
+                          short_name == tmp)$stage,
+                   " (",
+                   subset(x = samples_info,
+                          short_name == tmp)$short_name,
+                   ")",
+                   sep = ""))
+  
+}  
+
+input$test <- gsub(pattern = "Stage_II",
+                   replacement = "Day_4",
+                   input$test)
+
+input$test <- gsub(pattern = "Stage_IV",
+                   replacement = "Day_8",
+                   input$test)
+
+input$test <- gsub(pattern = "Stage_I",
+                   replacement = "Day_2",
+                   input$test)
+
+## Generate heatmap:
+heatmap_plot <- ggplot(input,
+                       aes(test,
+                           gene_name)) +
+        geom_tile(aes(fill = counts)) +
+        geom_vline(xintercept = c(0.5,
+                                  12.5,
+                                  24.5,
+                                  32.5,
+                                  40.5)) +
+        scale_fill_gradient2(low = "black",
+                             mid = "white",
+                             high = "red") +
+        ylab("") +
+        xlab("") +
+        theme(legend.title = element_text(size = 10,
+                                          face = "bold"),
+              legend.text = element_text(size = 10,
+                                         face = "bold"),
+              axis.text.y = element_blank(),
+              axis.text.x = element_text(size = 8,
+                                         face = "bold",
+                                         angle = 90),
+              axis.title = element_blank(),
+              axis.ticks = element_blank(),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              legend.position = "top") +
+        labs(fill = "Normalised gene expression")
+
+ggsave(file = "results/conserved_degs_across_castes.pdf",
+       height = 6,
+       width= 10,
+       dpi = 600)
+
 ## Generate a multi-panel plot:
 pca_plots <- ggarrange(caste_plot_pc1_2,
                        group_plot_pc1_2,
@@ -1152,6 +1282,7 @@ rest_plot <- ggarrange(
           common.legend = FALSE,
           align = "hv") 
 
+## Plot:
 ggarrange(pca_plots,
           rest_plot,
           ncol = 1,
