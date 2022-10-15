@@ -32,7 +32,7 @@ This revealed **8650** genes expressed in all samples (approximately 78% of all 
 Second, density plots were generated for the percentage of expressed genes per sample for:
 - Treatment (Fig. 2A)
 - Stage (Fig. 2B)  
-There was a significant difference  in terms of the mean percentage of expressed genes across castes (t-test; p = 0.04), but was a significant difference between treatments (ANOVA; p = 0.02) but not stage (ANOVA; p = 0.61).  
+There was a significant difference  in terms of the mean percentage of expressed genes between stage (ANOVA; p = 0.0001) but not treatment (ANOVA; p = 0.06).  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Step One: Load libraries - if not present, install from scratch.
@@ -136,6 +136,23 @@ dds_htseq <- DESeqDataSetFromHTSeqCount(sampleTable = samples_info,
                                        directory = directory,
                                        design = ~ stage +
                                                   treatment_group)
+
+## Extract and export raw gene-level counts:
+counts_df <- as.data.frame(counts(dds_htseq))
+counts_df <- counts_df[order(row.names(counts_df)), ]
+colnames(counts_df) <- gsub(pattern = ".ReadsPerGene.out.tab",
+                            replacement = "",
+                            colnames(counts_df))
+
+## Save:
+dir.create(path = "results/fb_queen",
+           recursive = TRUE)
+write.table(x = counts_df,
+            file = "results/fb_queen/qfat_body_gene_level_counts.txt",
+            row.names = TRUE,
+            col.names = TRUE,
+            quote = FALSE,
+            sep = "\t")
 keep <- rowSums(counts(dds_htseq)) >= 10
 dds_htseq <- dds_htseq[keep, ]
 
@@ -152,7 +169,7 @@ for (name in 1:ncol(counts)){
 }
 
 ## Plot upSet plot and save as a PDF:
-pdf(file = "results/queen_fat_body_upset_plot.pdf",
+pdf(file = "results/fb_queen/queen_fat_body_upset_plot.pdf",
     height = 12,
     width = 8) # or other device
 UpSetR::upset(fromList(new_list), 
@@ -270,7 +287,7 @@ vsd <- vst(deseq_object,
 
 ## Save object:
 saveRDS(object = vsd,
-        file = "results/vsd_queen_brain_treatment.rds")
+        file = "results/fb_queen/vsd_queen_fat_body_treatment.rds")
 
 sampleDists <- dist(t(assay(vsd)))
 
@@ -288,7 +305,7 @@ colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
 rownames(sampleDistMatrix) <- gsub(pattern = "Insemination_group",
                                         replacement = "AI_group_1",
                                         row.names(sampleDistMatrix))
-pdf(file = "results/brain_queen_filtered_pheatmap.pdf",
+pdf(file = "results/fb_queen/fat_body_queen_filtered_pheatmap.pdf",
     height = 8,
     width = 8)
 pheatmap(sampleDistMatrix,
@@ -474,130 +491,9 @@ pca_df <- as.data.frame(pca$x)
 summary(pca)
 ```
 
-So appears there are a few outliers - if we remove:
+_**Fig. 4.** Principal component analysis with first two principal components shown. Individuals are coloured by caste (queen = "red"; worker = "blue)._
 
-```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
-## Identify outliers:
-## Based on PCs 1 and 2, anything right of 10 on PC1 is likely an outlier:
-samples_to_keep <- subset(x = pca_df,
-                          PC1 < 20)
-samples_to_keep <- row.names(samples_to_keep)
-
-dds_htseq <- dds_htseq[, samples_to_keep]
-  
-## Create a DESeq2 object:
-deseq_object  <- DESeq(dds_htseq,
-                       test = "LRT",
-                       reduced = ~ stage)  
-
-## Transform gene-level counts using variance-stablising transformtion:
-vsd <- vst(deseq_object,
-             blind = FALSE)
-
-sampleDists <- dist(t(assay(vsd)))
-
-sampleDistMatrix <- as.matrix(sampleDists)
-rownames(sampleDistMatrix) <- paste(vsd$treatment_group,
-                                    vsd$stage,
-                                    sep = " - " )
-colnames(sampleDistMatrix) <- NULL
-colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
-
-## Rename rownames:
-rownames(sampleDistMatrix) <- gsub(pattern = "Insemination_group",
-                                        replacement = "AI_group_1",
-                                        row.names(sampleDistMatrix))
-
-pdf(file = "results/brain_queen_filtered_pheatmap.pdf",
-    height = 10,
-    width = 10)
-brain_heatmap_filtered <- pheatmap(sampleDistMatrix,
-                                   clustering_distance_rows = sampleDists,
-                                   clustering_distance_cols = sampleDists,
-                                   col = colors)
-dev.off()
-```
-
-_**Fig. 4.** Principal component analysis with first two principal components shown. Individuals are coloured by caste (queen = "red"; worker = "blue)._  
-
-```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
-## Generate plot:
-group_plot_pc1_2 <- plotPCA.san(vsd,
-                          first_pc = 1,
-                          second_pc = 2,
-            intgroup = c("treatment_group"))
-group_plot_pc1_2 <- group_plot_pc1_2 +
-  scale_fill_discrete(name = "Treatment")
-
-group_plot_pc1_3 <- plotPCA.san(vsd,
-                          first_pc = 1,
-                          second_pc = 3,
-            intgroup = c("treatment_group"))
-group_plot_pc1_3 <- group_plot_pc1_3 +
-  scale_fill_discrete(name = "Treatment")
-
-group_plot_pc1_4 <- plotPCA.san(vsd,
-                          first_pc = 1,
-                          second_pc = 4,
-            intgroup = c("treatment_group"))
-group_plot_pc1_4 <- group_plot_pc1_4 +
-  scale_fill_discrete(name = "Treatment")
-```
-
-```{r figure5, ref.label = "figure5", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
-ggarrange(group_plot_pc1_2,
-          group_plot_pc1_3,
-          group_plot_pc1_4,
-          nrow = 1,
-          ncol = 3,
-          align = "hv",
-          legend = "none")
-```
-
-_**Fig. 5.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (control = "red"; inseminated group = "blue)._  
-
-```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
-stage_plot_pc1_2 <- plotPCA.san(vsd,
-                          first_pc = 1,
-                          second_pc = 2,
-            intgroup = c("stage"))
-stage_plot_pc1_2 <- stage_plot_pc1_2 +
-  scale_fill_discrete(name = "Stage")
-
-stage_plot_pc1_3 <- plotPCA.san(vsd,
-                          first_pc = 1,
-                          second_pc = 3,
-            intgroup = c("stage"))
-stage_plot_pc1_3 <- stage_plot_pc1_3 +
-  scale_fill_discrete(name = "Stage")
-
-stage_plot_pc1_4 <- plotPCA.san(vsd,
-                          first_pc = 1,
-                          second_pc = 4,
-            intgroup = c("stage"))
-stage_plot_pc1_4 <- stage_plot_pc1_4 +
-  scale_fill_discrete(name = "Stage")
-```
-
-```{r figure7, ref.label = "figure7", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
-ggarrange(stage_plot_pc1_2,
-          stage_plot_pc1_3,
-          stage_plot_pc1_4,
-          nrow = 1,
-          ncol = 3,
-          align = "hv",
-          legend = "none")
-```
-_**Fig. 6.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (two days = "blue"; four days = "green"; eight days = "red")_    
-
-```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
-## Calculate principal components:
-pca <- prcomp(t(assay(vsd)))
-
-pca_df <- as.data.frame(pca$x)
-## check the proportion of variance explained by each PC:
-summary(pca)
-```
+Based on  PCs 1 and 2, there is no obvious outlier - move to next step:
 
 Generate a combined plot:
 
@@ -620,7 +516,7 @@ pca_combined <- ggarrange(
 pca_combined
 
 ## Save to file:
-ggsave(filename = "results/queen_brain_filtered_pca_plot.pdf",
+ggsave(filename = "results/fb_queen/queen_fatbody_filtered_pca_plot.pdf",
        height = 8,
        width = 8)
 ```
@@ -673,7 +569,7 @@ nrow(deseq_object_results_sig)
 ## Convert DESeq2 result object to a dataframe:
 deseq_object_results <- as.data.frame(deseq_object_results)
 write.table(x = deseq_object_results,
-            file = "results/queen_degs.txt",
+            file = "results/fb_queen/queen_fb_degs.txt",
             quote = FALSE,
             row.names = TRUE,
             col.names = TRUE,

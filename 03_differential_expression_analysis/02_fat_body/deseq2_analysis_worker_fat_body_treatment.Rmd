@@ -139,6 +139,23 @@ dds_htseq <- DESeqDataSetFromHTSeqCount(sampleTable = samples_info,
                                        directory = directory,
                                        design = ~ stage +
                                                   treatment_group)
+
+## Extract and export raw gene-level counts:
+counts_df <- as.data.frame(counts(dds_htseq))
+counts_df <- counts_df[order(row.names(counts_df)), ]
+colnames(counts_df) <- gsub(pattern = ".ReadsPerGene.out.tab",
+                            replacement = "",
+                            colnames(counts_df))
+
+## Save:
+dir.create(path = "results/fb_worker",
+           recursive = TRUE)
+write.table(x = counts_df,
+            file = "results/fb_worker/wfat_body_gene_level_counts.txt",
+            row.names = TRUE,
+            col.names = TRUE,
+            quote = FALSE,
+            sep = "\t")
 keep <- rowSums(counts(dds_htseq)) >= 10
 dds_htseq <- dds_htseq[keep, ]
 
@@ -155,7 +172,7 @@ for (name in 1:ncol(counts)){
 }
 
 ## Plot upSet plot and save as a PDF:
-pdf(file = "results/worker_fat_body_upset_plot.pdf",
+pdf(file = "results/fb_worker/worker_fat_body_upset_plot.pdf",
     height = 12,
     width = 8) # or other device
 UpSetR::upset(fromList(new_list), 
@@ -272,7 +289,7 @@ vsd <- vst(deseq_object,
 
 ## Save object:
 saveRDS(object = vsd,
-        file = "results/vsd_worker_fat_body_treatment.rds")
+        file = "results/fb_worker/vsd_worker_fat_body_treatment.rds")
 
 sampleDists <- dist(t(assay(vsd)))
 
@@ -523,7 +540,7 @@ rownames(sampleDistMatrix) <- gsub(pattern = "Insemination_with_nothing",
                                         replacement = "AI_group_3",
                                         row.names(sampleDistMatrix))
 
-pdf(file = "results/worker_fat_body_filtered_pheatmap.pdf",
+pdf(file = "results/fb_worker/worker_fat_body_filtered_pheatmap.pdf",
     height = 10,
     width = 10)
 fat_body_heatmap_filtered <- pheatmap(sampleDistMatrix,
@@ -635,7 +652,7 @@ pca_combined <- ggarrange(
 pca_combined
 
 ## Save to file:
-ggsave(filename = "results/worker_fat_body_filtered_pca_plot.pdf",
+ggsave(filename = "results/fb_worker/worker_fat_body_filtered_pca_plot.pdf",
        height = 8,
        width = 8)
 ```
@@ -700,7 +717,7 @@ nrow(deseq_object_results_sig)
 ## Convert DESeq2 result object to a dataframe:
 deseq_object_results <- as.data.frame(deseq_object_results)
 write.table(x = deseq_object_results,
-            file = "results/worker_fat_body_degs.txt",
+            file = "results/fb_worker/worker_fat_body_degs.txt",
             quote = FALSE,
             row.names = TRUE,
             col.names = TRUE,
@@ -892,74 +909,74 @@ ggarrange(volcano_plot,
                      "C"))
 
 ## Examine also with a Euler plot:
-## Compare overlap of differentially expressed genes:
-venneu_treatment_comparison <- euler(combinations = list("Insemination up-DEGs" = row.names(deseq_object_insemination_sig_up),
-                                                      "Dilutant up-DEGs" = row.names(dilutant_object_insemination_sig_up),
-                                                      "Injection up-DEGs" = row.names(injection_object_insemination_sig_up)),
-                                     shape = c("ellipse"))
+insemination_unique <- subset(x = deseq_object_results_sig,
+       !(row.names(deseq_object_results_sig) %in% 
+         c(row.names(dilutant_object_results_sig),
+           row.names(injection_object_results_sig))))
+
+table(table(c(row.names(deseq_object_results_sig),
+        row.names(dilutant_object_results_sig),
+        row.names(injection_object_results_sig))))
 
 table(table(c(row.names(deseq_object_insemination_sig_up),
-              row.names(dilutant_object_insemination_sig_up),
-              row.names(injection_object_insemination_sig_up))))
+        row.names(dilutant_object_insemination_sig_up),
+        row.names(injection_object_insemination_sig_up))))
 
-insemination_unique <- subset(x = deseq_object_insemination_sig_up,
-       !(row.names(deseq_object_insemination_sig_up) %in% 
-         c(row.names(dilutant_object_insemination_sig_up),
-           row.names(injection_object_insemination_sig_up))))
+table(table(c(row.names(deseq_object_insemination_sig_down),
+        row.names(dilutant_object_insemination_sig_down),
+        row.names(injection_object_insemination_sig_down))))
 
-## Generate plot:
-treatment_up_comparison_plot <- plot(venneu_treatment_comparison,
-                               quantities = TRUE,
-                               edges = TRUE,
-                               labels = list(fontsize = 12))
+## There appears to be two genes unaccounted for:
+tmp <- as.data.frame(table(c(row.names(deseq_object_results_sig),
+        row.names(dilutant_object_results_sig),
+        row.names(injection_object_results_sig))))
+  
+tmp_up <- as.data.frame(table(c(row.names(deseq_object_insemination_sig_up),
+                  row.names(dilutant_object_insemination_sig_up),
+                  row.names(injection_object_insemination_sig_up))))
 
-## Print:
-treatment_up_comparison_plot
+tmp_down <- as.data.frame(table(c(row.names(deseq_object_insemination_sig_down),
+                  row.names(dilutant_object_insemination_sig_down),
+                  row.names(injection_object_insemination_sig_down))))
 
-pdf(file = "results/worker_fat_body_filter_elevated_degs_venn_diagram_degs.pdf",
-    height = 10,
-    width = 10)
-treatment_up_comparison_plot
-dev.off()
+tmp[, (as.character(unlist(subset(tmp,
+                                  Freq == 3)$Var1)) %in% 
+      c(as.character(unlist(subset(tmp_up,
+                                   Freq == 3)$Var1)),
+        as.character(unlist(subset(tmp_down,
+                                   Freq == 3)$Var1))))]
 
 ## For genes with reduced expression in response to treatment:
 venneu_treatment_comparison <- euler(combinations = list(
-                                                      "AI Group I DEGs" = row.names(deseq_object_results_sig),
-                                                      "AI Group 2 DEGs" = row.names(dilutant_object_results_sig),
-                                                      "AI Group 3 DEGs" = row.names(injection_object_results_sig)),
+                                                      "AI Group I" = row.names(deseq_object_results_sig),
+                                                      "AI Group 2" = row.names(dilutant_object_results_sig),
+                                                      "AI Group 3" = row.names(injection_object_results_sig)),
                                      shape = "ellipse")
 
 ## Generate plot:
 treatment_comparison_plot <- plot(venneu_treatment_comparison,
-                               quantities = TRUE,
-                               edges = TRUE,
-                               labels = list(fontsize = 12))
+                                  quantities = TRUE,
+                                  edges = TRUE,
+                                  labels = list(fontsize = 12))
 
-pdf(file = "results/fat_body_worker/worker_fat_body_all_venn_diagram_degs.pdf",
+pdf(file = "results/fb_worker/worker_fat_body_all_venn_diagram_degs.pdf",
     height = 6,
     width = 6)
 treatment_comparison_plot
 dev.off()
 
-insemination_down_unique <- subset(x = deseq_object_insemination_sig_down,
-                                   !(row.names(deseq_object_insemination_sig_down) %in% 
-                                       c(row.names(dilutant_object_insemination_sig_down),
-                                         row.names(injection_object_insemination_sig_down))))
 ## Subset rows of interest:
 counts_df <- as.data.frame(counts(dds_htseq))
 counts_subset_df <- subset(x = counts_df,
-       row.names(counts_df) %in% c(row.names(insemination_unique),
-                                   row.names(insemination_down_unique)))
+       row.names(counts_df) %in% c(row.names(insemination_unique)))
 
 head(assay(vsd))
 
-genes_of_interest <- c(row.names(insemination_unique),
-                                   row.names(insemination_down_unique))
+genes_of_interest <- c(row.names(insemination_unique))
 
 ## Write to file:
-dir.create(path = "results/fat_body_worker/")
 write(x = genes_of_interest,
-      file = "results/fat_body_worker/inseminated_worker_elevated_gene_list.txt")
+      file = "results/fb_worker/inseminated_worker_gene_list.txt")
 
 ## Normalise counts:
 normalised_counts <- t(scale(t(counts(dds_htseq)),
@@ -1131,7 +1148,7 @@ ggarrange(
           widths = c(1, 1))
 
 ## Write to file:
-ggsave(filename = "results/fat_body_worker/combined_heatmap_barchart.pdf",
+ggsave(filename = "results/fb_worker/combined_heatmap_barchart.pdf",
        height = 6,
        width = 12,
        dpi = 600)
