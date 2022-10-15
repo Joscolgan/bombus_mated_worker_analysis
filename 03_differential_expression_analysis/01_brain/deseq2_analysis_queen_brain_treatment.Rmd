@@ -15,9 +15,9 @@ included treatment groups to examine changes in gene expression due to artificia
 
 ## Samples:  
 The 'brain' dataset consists:  
-**Queen samples:** n = 26  
+**Queen samples:** n = 24  
 - Control (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)
-- Insemination (n = 14; stage 1 n = 6, stage II n = 4, and stage IV n = 4)  
+- Insemination (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)  
 
 ## Methods  
 Cleaned sequences were quality assessed using FastQC ensuring high base quality and 
@@ -136,6 +136,25 @@ dds_htseq <- DESeqDataSetFromHTSeqCount(sampleTable = samples_info,
                                        directory = directory,
                                        design = ~ stage +
                                                   treatment_group)
+
+## Extract and export raw gene-level counts:
+counts_df <- as.data.frame(counts(dds_htseq))
+counts_df <- counts_df[order(row.names(counts_df)), ]
+colnames(counts_df) <- gsub(pattern = ".ReadsPerGene.out.tab",
+                            replacement = "",
+                            colnames(counts_df))
+
+## Save:
+dir.create(path = "results/brain_queen",
+           recursive = TRUE)
+write.table(x = counts_df,
+            file = "results/brain_queen/qbrain_gene_level_counts.txt",
+            row.names = TRUE,
+            col.names = TRUE,
+            quote = FALSE,
+            sep = "\t")
+
+
 keep <- rowSums(counts(dds_htseq)) >= 10
 dds_htseq <- dds_htseq[keep, ]
 
@@ -152,7 +171,7 @@ for (name in 1:ncol(counts)){
 }
 
 ## Plot upSet plot and save as a PDF:
-pdf(file = "results/queen_upset_plot.pdf",
+pdf(file = "results/brain_queen/queen_upset_plot.pdf",
     height = 12,
     width = 8) # or other device
 UpSetR::upset(fromList(new_list), 
@@ -270,7 +289,7 @@ vsd <- vst(deseq_object,
 
 ## Save object:
 saveRDS(object = vsd,
-        file = "results/vsd_queen_brain_treatment.rds")
+        file = "results/brain_queen/vsd_queen_brain_treatment.rds")
 
 sampleDists <- dist(t(assay(vsd)))
 
@@ -288,7 +307,7 @@ colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
 rownames(sampleDistMatrix) <- gsub(pattern = "Insemination_group",
                                         replacement = "AI_group_1",
                                         row.names(sampleDistMatrix))
-pdf(file = "results/brain_queen_filtered_pheatmap.pdf",
+pdf(file = "results/brain_queen/brain_queen_filtered_pheatmap.pdf",
     height = 8,
     width = 8)
 pheatmap(sampleDistMatrix,
@@ -480,7 +499,7 @@ So appears there are a few outliers - if we remove:
 ## Identify outliers:
 ## Based on PCs 1 and 2, anything right of 10 on PC1 is likely an outlier:
 samples_to_keep <- subset(x = pca_df,
-                          PC1 < 20)
+                          PC1 > -30)
 samples_to_keep <- row.names(samples_to_keep)
 
 dds_htseq <- dds_htseq[, samples_to_keep]
@@ -508,7 +527,7 @@ rownames(sampleDistMatrix) <- gsub(pattern = "Insemination_group",
                                         replacement = "AI_group_1",
                                         row.names(sampleDistMatrix))
 
-pdf(file = "results/brain_queen_filtered_pheatmap.pdf",
+pdf(file = "results/brain_queen/brain_queen_filtered_pheatmap.pdf",
     height = 10,
     width = 10)
 brain_heatmap_filtered <- pheatmap(sampleDistMatrix,
@@ -620,7 +639,7 @@ pca_combined <- ggarrange(
 pca_combined
 
 ## Save to file:
-ggsave(filename = "results/queen_brain_filtered_pca_plot.pdf",
+ggsave(filename = "results/brain_queen/queen_brain_filtered_pca_plot.pdf",
        height = 8,
        width = 8)
 ```
@@ -646,6 +665,7 @@ expression in the brain of inseminated bees, which is significant deviation from
 ## Check names of comparisons:
 resultsNames(deseq_object)
 
+## Extract results:
 res <- results(deseq_object)
 ```
 
@@ -673,7 +693,7 @@ nrow(deseq_object_results_sig)
 ## Convert DESeq2 result object to a dataframe:
 deseq_object_results <- as.data.frame(deseq_object_results)
 write.table(x = deseq_object_results,
-            file = "results/queen_degs.txt",
+            file = "results/brain_queen/queen_brain_degs.txt",
             quote = FALSE,
             row.names = TRUE,
             col.names = TRUE,
