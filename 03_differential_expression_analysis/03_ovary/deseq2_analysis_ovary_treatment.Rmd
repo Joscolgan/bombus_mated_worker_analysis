@@ -1,6 +1,6 @@
 ---
 author: "Joe Colgan"
-title: "**Transcriptomic analysis of ovaries of control and inseminated _Bombus terrestris_ workers and queens**"
+title: "**Transcriptomic analysis of brains of control and inseminated _Bombus terrestris_ workers and queens**"
 output:
   pdf_document: default
   html_document: default
@@ -10,20 +10,7 @@ fontsize: 20pt
 ---
 
 ## Introduction
-The purpose of the present analysis is to examine similarities and differences in terms of gene expression associated with the ovary of _Bombus terrestris_ workers and queens. For the present study, control (unmated), and artificially inseminated bumblebees were collected and ovaries removed at three different time points (two, four and eight days post-treatment). The study also
-included treatment groups to examine changes in gene expression due to artificial insemination alone as well as the dilutant used during the insemination step.  
-
-## Samples:  
-The 'Ovary' dataset consists of 72 samples:  
-**Queen samples:** n = 24 
-- Control (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)
-- Insemination (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)  
-
-**Worker samples:** n = 48 
-- Control (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)
-- Insemination (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)
-- Dilutant (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)
-- Nothing (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)  
+The purpose of the present analysis is to examine similarities and differences in terms of gene expression associated with the brain of _Bombus terrestris_ workers and queens. For the present study, control (unmated) and artificially inseminated bumblebees were collected and brains removed at three different time points (two, four and eight days post-treatment).
 
 ## Methods  
 Cleaned sequences were quality assessed using FastQC ensuring high base quality and 
@@ -34,12 +21,12 @@ _Bombus terrestris_ reference genome assembly using [STAR](https://github.com/al
 ## Results  
 The first aspect of the analysis involved examining outliers.  
 First, the number of expressed genes was compared across individuals using an upset plot (Fig. 1).  
-This revealed **9103** genes expressed in all samples (approximately 79% of all genes (n = 11557) expressed in the ovaries).   
+This revealed **7715** genes expressed in all samples (approximately 70% of all genes (n = 10901) expressed in the spermatheca).   
 Second, density plots were generated for the percentage of expressed genes per sample for:
 - Caste (Fig. 2A)
 - Treatment (Fig. 2B)
 - Stage (Fig. 2C)  
-There was a significant difference  in terms of the mean percentage of expressed genes across castes (t-test; p = 0.04), but no difference between treatments (ANOVA; p = 0.5) and stage (ANOVA; p = 0.34).  
+There is no significant difference in terms of the mean percentage of expressed genes across castes (t-test; p = 0.58), treatments (t-test; p = 0.3) and stage (ANOVA; p = 0.24).  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Step One: Load libraries - if not present, install from scratch.
@@ -145,6 +132,20 @@ dds_htseq <- DESeqDataSetFromHTSeqCount(sampleTable = samples_info,
                                        design = ~ caste +
                                                   stage +
                                                   treatment_group)
+
+## Extract and save counts:
+dds_htseq_counts <- counts(dds_htseq)
+colnames(dds_htseq_counts) <- gsub(pattern = ".ReadsPerGene.out.tab",
+                                   replacement = "",
+                                   colnames(dds_htseq_counts))
+## Save to file:
+write.table(x = dds_htseq_counts,
+            file = "results/all_ovary_counts.txt",
+            row.names = TRUE,
+            col.names = TRUE,
+            quote = FALSE,
+            sep = "\t")
+
 keep <- rowSums(counts(dds_htseq)) >= 10
 dds_htseq <- dds_htseq[keep, ]
 
@@ -161,7 +162,7 @@ for (name in 1:ncol(counts)){
 }
 
 ## Plot upSet plot and save as a PDF:
-pdf(file = "results/ovary_upset_plot.pdf",
+pdf(file = "results/upset_plot.pdf",
     height = 12,
     width = 8) # or other device
 UpSetR::upset(fromList(new_list), 
@@ -285,7 +286,7 @@ _**Fig. 2.** Density plots displaying percentage of genes expressed across sampl
 
 ## Sample clustering.  
 To examine general similarities and differences within and between group, a distance matrix based
-on variance stabilising transformed (VST) counts was performed.
+on variance stabilising transformed (VST) counts was performed. This did highlight one sample "37" as being quite different from the rest in terms of expression profiles.  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Create a DESeq2 object:
@@ -297,17 +298,6 @@ deseq_object  <- DESeq(dds_htseq,
 vsd <- vst(deseq_object,
              blind = FALSE)
 
-vsd$stage <- gsub(pattern = "_", replacement = " ", vsd$stage)
-## Rename rownames:
-vsd$treatment_group <- gsub(pattern = "Insemination_group",
-                                        replacement = "AI group 1",
-                                        vsd$treatment_group)
-vsd$treatment_group <- gsub(pattern = "Insemination_with_dilutent",
-                                        replacement = "AI group 2",
-                                        vsd$treatment_group)
-vsd$treatment_group <- gsub(pattern = "Insemination_with_nothing",
-                                        replacement = "AI group 3",
-                                        vsd$treatment_group)
 ## Save object:
 saveRDS(object = vsd,
         file = "results/vsd_ovary_treatment.rds")
@@ -328,54 +318,21 @@ pheatmap(sampleDistMatrix,
          clustering_distance_rows = sampleDists,
          clustering_distance_cols = sampleDists,
          col = colors)
-
-## Rename rownames:
-rownames(sampleDistMatrix) <- gsub(pattern = "Insemination_group",
-                                        replacement = "AI_group_1",
-                                        row.names(sampleDistMatrix))
-
-rownames(sampleDistMatrix) <- gsub(pattern = "Insemination_with_dilutent",
-                                        replacement = "AI_group_2",
-                                        row.names(sampleDistMatrix))
-
-rownames(sampleDistMatrix) <- gsub(pattern = "Insemination_with_nothing",
-                                        replacement = "AI_group_3",
-                                        row.names(sampleDistMatrix))
-
-pheatmap(sampleDistMatrix,
-         clustering_distance_rows = sampleDists,
-         clustering_distance_cols = sampleDists,
-         col = colors)
 ```
 
 _**Fig. 3.** Heatmap displaying distance matrix of genes expressed within and across samples._   
-
-```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
-#poisd <- PoissonDistance(t(counts(dds_htseq)))
-
-#samplePoisDistMatrix <- as.matrix(poisd$dd)
-#rownames(samplePoisDistMatrix) <- paste(dds_htseq$caste,
-#                                        dds_htseq$treatment_group,
-#                                        sep=" - " )
-#colnames(samplePoisDistMatrix) <- NULL
-```
-
-```{r figure4, ref.label = "figure4", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
-#pheatmap(samplePoisDistMatrix,
-#         clustering_distance_rows = poisd$dd,
-#         clustering_distance_cols = poisd$dd)
-```
 
 \newpage  
 
 ## Principal component analysis.  
 
-To examine further similarities in terms of expression profiles across samples, a principal component analysis using VST gene values was performed. The first principal component, which explains 55% of the variance in the dataset identifies the possibility of outliers with no clear difference explained by the first two components that separate caste. There was evidence that one of the treatments may be driving the pattern (Fig. 5). It was decided to rerun the PCA with the four samples separated by PC1 removed to provide more resolution on differences between samples    
+To examine further similarities in terms of expression profiles across samples, a principal component analysis using VST gene values was performed. The first principal component, which explains 67% of the variance in the dataset, clearly separates workers and queens indicating caste-specific profiles in terms of gene expression in the spermatheca. The second principal component, which explains 11% of the variance, separates individuals based on treatment (i.e., whether they are inseminated or not). The third principal component, which explains 8% of the variance separates sample 37 from the rest of the bees, which is in line with previous analyses that this sample has quite an extreme expression profile in comparison to the other samples.  
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Here set the two principal components that you want to compare:
 ## It can any combination between 1 and 22:
 #first_pc <- 2
 #second_pc <- 3
+## Create function for plotting:
 ## Create function for plotting:
 plotPCA.san <- function(object,
                         first_pc = first_pca,
@@ -437,7 +394,7 @@ plotPCA.san <- function(object,
                                               face = "bold"),
                   legend.text = element_text(size = 12,
                                               face = "plain"),
-                  legend.position = "top")
+                  legend.position = "none")
 }
 ```
 
@@ -548,7 +505,8 @@ ggarrange(stage_plot_pc1_2,
           stage_plot_pc1_4,
           nrow = 1,
           ncol = 3,
-          align = "hv")
+          align = "hv",
+          legend = "none")
 ```
 _**Fig. 6.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (two days = "blue"; four days = "green"; eight days = "red")_    
 
@@ -567,7 +525,7 @@ So appears there are a few outliers - if we remove:
 ## Identify outliers:
 ## Based on PCs 1 and 2, anything right of 10 on PC1 is likely an outlier:
 samples_to_keep <- subset(x = pca_df,
-                          PC2 < 40)
+                          PC2 < 20)
 samples_to_keep <- row.names(samples_to_keep)
 
 dds_htseq <- dds_htseq[, samples_to_keep]
@@ -577,45 +535,51 @@ deseq_object  <- DESeq(dds_htseq,
                        test = "LRT",
                        reduced = ~caste + stage)  
 
-## Transform gene-level counts using variance-stablising transformtion:
+## Transform gene-level counts using variance-stablising transformation:
 vsd <- vst(deseq_object,
              blind = FALSE)
 
-vsd$stage <- gsub(pattern = "_", replacement = " ", vsd$stage)
-
 ## Rename rownames:
 vsd$treatment_group <- gsub(pattern = "Insemination_group",
-                                        replacement = "AI group 1",
-                                        vsd$treatment_group)
+                            replacement = "AI Group 1",
+                            vsd$treatment_group)
 
 vsd$treatment_group <- gsub(pattern = "Insemination_with_dilutent",
-                                        replacement = "AI group 2",
-                                        vsd$treatment_group)
+                            replacement = "AI Group 2",
+                            vsd$treatment_group)
 
 vsd$treatment_group <- gsub(pattern = "Insemination_with_nothing",
-                                        replacement = "AI group 3",
-                                        vsd$treatment_group)
+                            replacement = "AI Group 3",
+                            vsd$treatment_group)
 
-sampleDists <- dist(t(assay(vsd)))
+vsd$stage <- gsub(pattern = "_",
+                  replacement = " ",
+                  vsd$stage)
 
-sampleDistMatrix <- as.matrix( sampleDists )
-rownames(sampleDistMatrix) <- paste( vsd$caste,
-                                     vsd$treatment_group,
-                                     vsd$stage,
-                                     sep = " - " )
-colnames(sampleDistMatrix) <- NULL
-colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+## Calculate distance between samples:
+sample_dists <- dist(t(assay(vsd)))
 
+## Convert to a matrix:
+sample_dist_matrix <- as.matrix(sample_dists)
+
+rownames(sample_dist_matrix) <- paste(vsd$caste,
+                                      vsd$treatment_group,
+                                      vsd$stage,
+                                      sep = " - ")
+colnames(sample_dist_matrix) <- NULL
+colors <- colorRampPalette(rev(brewer.pal(9,
+                                          "Blues")))(255)
+
+## Export heatmap of clustered samples:
 pdf(file = "results/ovary_filtered_pheatmap.pdf",
     height = 10,
     width = 10)
-ovary_heatmap_filtered <- pheatmap(sampleDistMatrix,
-                                   clustering_distance_rows = sampleDists,
-                                   clustering_distance_cols = sampleDists,
+ovary_heatmap_filtered <- pheatmap(sample_dist_matrix,
+                                   clustering_distance_rows = sample_dists,
+                                   clustering_distance_cols = sample_dists,
                                    col = colors)
 dev.off()
 
-#group_plot + geom_text(aes(label=colnames(vsd)),vjust=2)
 ## Generate plot:
 caste_plot_pc1_2 <- plotPCA.san(vsd,
                           first_pc = 1,
@@ -741,10 +705,10 @@ pca_df <- as.data.frame(pca$x)
 ## check the proportion of variance explained by each PC:
 summary(pca)
 ```
-
 Generate a combined plot:
 
 ```{r, message = FALSE}
+## Generate a combined plot:
 pca_combined <- ggarrange(combined_caste_plot,
                           combined_group_plot,
                           combined_stage_plot,
@@ -754,10 +718,8 @@ pca_combined <- ggarrange(combined_caste_plot,
                      "B",
                      "C"),
           align = "hv")
-
 ## Print to console:
 (pca_combined)
-
 ## Save to file:
 ggsave(filename = "results/ovary_filtered_pca_plot.pdf",
        height = 8,
@@ -769,27 +731,17 @@ As a preliminary examination of differences in gene expression due to treatment,
 all samples, irrespective of caste and stage, were included in a differential expression 
 analysis.
 
-**Model 1:** To examine the effect of **treatment** on ovary gene expression, we constructed a _full model_ consisting of:  
+**Model 1:** To examine the effect of **treatment** on spermatheca gene expression, we constructed a _full model_ consisting of:  
 gene expression = ~treatment + caste + stage;   
 and a _reduced model_ of:  
 gene expression = ~caste + stage  
 
-From this model, a total of **2239** genes were identified as significantly differentiated expressed (adjusted _p_ value < 0.05; Fig. 7) across treatments.  
+From this model, a total of **2475** genes were identified as significantly differentially expressed (adjusted _p_ value < 0.05; Fig. 7) between inseminated and control bumblebees. Of this number, **1238** genes had elevated expression in inseminated bumblebees compared to control while in contrast **1237** genes had reduced expression in inseminated bumblebees. 
 
-Applying a more stringent threshold to examine specific differences between treatment groups for significant differential expression based on adjusted
-_p_ value and a minimum of absolute log2 fold change of 1, our model identifies **102** (Fig. 8)
-significantly differentially expressed genes with the majority (n = **96**) having elevated 
-expression in the ovary of inseminated bees, which is significant deviation from equal outcome of expression profiles for differentially expressed genes (binomial test; *p* < 0.05).  
-
-**Comparison of dilutant group and control bees**: Our model identifies **38** (Fig. 8)
-significantly differentially expressed genes with the majority (n = **34**) having elevated 
-expression in the ovaries of bees inseminated only with dilutant.  
-
-**Comparison of the "nothing" group and control bees**: Our model identifies **64** (Fig. 8)
-significantly differentially expressed genes with the majority (n = **39**) having elevated 
-expression in the ovaries of bees treated only with the needle. A complication with this 
-specific analysis is the low sample size of "nothing group", which consists of six individuals 
-after the removal of outlier samples.  
+Applying a more stringent threshold for significant differential expression based on adjusted
+_p_ value and a minimum of absolute log2 fold change of 1, our model identifies **505** (Fig. 8)
+significantly differentially expressed genes with the majority (n = **409**) having elevated 
+expression in the spermatheca of inseminated bees, which is significant deviation from equal outcome of expression profiles for differentially expressed genes (binomial test; *p* < 0.05).  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Check names of comparisons:
@@ -809,7 +761,6 @@ hist(res$padj[res$baseMean > 1],
 ```
 _**Fig. 7** Histogram of adjiusted p values for differentially expressed genes between treatment groups._    
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
-resultsNames(deseq_object)
 ## Extract results:
 deseq_object_results <- results(deseq_object,
                                       name = "treatment_group_Insemination_group_vs_Control")
@@ -817,7 +768,8 @@ deseq_object_results <- results(deseq_object,
 ## Extract significant phenotype genes:
 deseq_object_results$absL2FC <- abs(deseq_object_results$log2FoldChange)
 deseq_object_results_sig     <- subset(x = deseq_object_results,
-                                           padj < 0.05)
+                                           padj < 0.05 &
+                                           absL2FC > 1)
 nrow(deseq_object_results_sig)
 
 ## Convert DESeq2 result object to a dataframe:
@@ -1024,35 +976,27 @@ treatment_comparison_plot <- plot(venneu_treatment_comparison,
                                quantities = TRUE,
                                edges = TRUE,
                                labels = list(fontsize = 12))
-
-pdf(file = "results/ovary_filter_venn_diagram_degs.pdf",
-    height = 10,
-    width = 10)
-treatment_comparison_plot
-dev.off()
-
+         
 saveRDS(object = deseq_object_results,
         file = "results/deseq_object_results_treatment.rds")
 ```
 _**Fig. 8.** Volcano plots displaying differences in gene expression across bumblebees differing in insemination status._   
 
-## Interaction effect between caste and stage:  
-**Model 2:** Given that we lack queen samples for the 'dilutant' and 'nothing' groups,
-we cannot examine an interaction effect between caste and treatment unless we subset. We can examine an interaction between caste and stage using the entire dataset:
-
-Full model: gene expression = ~treatment + caste + stage + caste:stage 
+## Interaction effect between caste and treatment:  
+**Model 2:**To examine the effect of **treatment** on spermatheca gene expression, we construct a _full model_ consisting of:  
+gene expression = ~treatment + caste + stage + caste:treatment 
 
 We then construct a _reduced model_ consisting of:
 gene expression = ~treatment + caste + stage  
 
-Analysis identified **1419** genes as differentially expressed (adjusted _p_ value < 0.05) between stage depending on caste. This however could be a consequence of the increased number of worker samples, including more divergent groupings.  
+Analysis identified **173** genes as differentially expressed (adjusted _p_ value < 0.05) between treatment groups depending on caste.
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Build DESeq2 dataset:
 design(deseq_object) <- ~ caste +
                            stage +
                            treatment_group +
-                           caste:stage
+                           caste:treatment_group
 
 ## Create a DESeq2 object:
 deseq_object  <- DESeq(deseq_object,
@@ -1065,7 +1009,7 @@ deseq_object  <- DESeq(deseq_object,
 resultsNames(deseq_object)
 ## Extract results:
 deseq_object_results <- results(deseq_object,
-                                      name = "casteWorker.stageStage_II")
+                                      name = "treatment_group_Insemination_with_dilutent_vs_Control")
 
 ## Extract significant phenotype genes:
 deseq_object_results_sig     <- subset(x = deseq_object_results,
@@ -1083,18 +1027,38 @@ A related question - how similar are differences between control and inseminated
 - First, we can visualise expression profiles for all individuals across samples using a heatmap for differentially expressed genes identified by Model 1 (Fig. 9).  
 - Second, we subdivide the data into worker and queen datasets, run differential expression analysis and examine the number of shared differentially expressed genes, as well as their rank. Related to this, we can compare significantly enriched Gene Ontology terms.  
 
+```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
+vsd <- vst(deseq_object,
+             blind = FALSE)
+
+topVarGenes <- head(order(rowVars(assay(vsd)),
+                          decreasing = TRUE),
+                    50)
+
+deseq_object_results_sig_ordered <- deseq_object_results_sig[order(deseq_object_results_sig$log2FoldChange), ]
+
+genes_of_interest <- head(row.names(deseq_object_results_sig_ordered),
+                          n = 30)
+
+#mat  <- assay(vsd)[ topVarGenes, ]
+mat  <- assay(vsd)[ genes_of_interest, ]
+mat  <- mat - rowMeans(mat)
+anno <- as.data.frame(colData(vsd)[, c("caste","treatment_group", "stage")])
+pheatmap(mat,
+         annotation_col = anno,
+         legend_breaks = c(-2,-1,0,1,2,3,4))
+```
+
+_**Fig. 9.** Heatmap displaying genes that significantly differ in expression between bumblebees that differ in insemination status._  
+\newpage
+
 ## Overlap analysis of differentially expressed genes:  
-If we subset the dataset into workers and queens and examine differentially expressed genes with caste-restricted analyses, do we find the same differentially expressed genes between artifically inseminated and control bumblebees.  
+If we subset the dataset into workers and queens and examine differentially expressed genes with caste-restricted analyses, do we find the same differentially expressed genes between inseminated and control bumblebees.  
 
 Using all worker samples, **1527** genes were differentially expressed between inseminated and control bees. Applying a threshold of absolute log2 fold change of 1, we reduce our
 number of differentially expressed genes to **415** (Fig. 10A).  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
-## For this analysis, we will restrict to only 'control' and 'inseminated samples':
-samples_info <- subset(x = samples_info,
-                       treatment_group == "Control" | 
-                         treatment_group == "Insemination_group")
-
 ## Create a function to run RUVSeq
 run_caste_deseq = function(specific_caste){
              ## Subset caste samples:
@@ -1159,7 +1123,7 @@ plot_volcano <- function(input){
 volcano_worker <- plot_volcano(input = worker_results_df)
 
 saveRDS(object = worker_results_df,
-        file = "results/ovary_deseq_object_results_worker_treatment.rds")
+        file = "results/deseq_object_results_worker_treatment.rds")
 ```
 
 Using all queen samples, **2196** genes were differentially expressed between inseminated and control bees (Fig. 10B). 
@@ -1167,17 +1131,11 @@ Using all queen samples, **2196** genes were differentially expressed between in
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 run_caste_deseq(specific_caste = "Queen")
 queen_results_df <- as.data.frame(object_results)
-queen_results_df$absLog2FC <- abs(queen_results_df$log2FoldChange)
-nrow(subset(x = queen_results_df,
-            padj < 0.05))
-nrow(subset(x = queen_results_df,
-            padj < 0.05 &
-            absLog2FC >= 1))
 
 volcano_queen <- plot_volcano(input = queen_results_df)
 
 saveRDS(object = queen_results_df,
-        file = "results/ovary_deseq_object_results_queen_treatment.rds")
+        file = "results/deseq_object_results_queen_treatment.rds")
 ```
 ```{r figure10, ref.label = "figure10", fig.width = 6, fig.height = 4, echo = FALSE, message=FALSE, warning=FALSE}
 ## Print to console:
@@ -1196,15 +1154,13 @@ _**Fig. 10.** Volcano plots displaying differences in gene expression of spermet
 \newpage
 
 ## Euler plot:  
-To visualise similarities in terms of differential expression across bumblebee castes in response to insemination, we used a euler plot. First, in response to insemination, workers and queens share **23** differentially expressed genes, which consists of approximately 10% and 52% of worker and queen differentially expressed genes, respectively (Fig. 11).  
+To visualise similarities in terms of differential expression across bumblebee castes in response to insemination, we used a euler plot. First, in response to insemination, workers and queens share **753** differentially expressed genes, which consists of approximately 49% and 34% of worker and queen differentially expressed genes, respectively (Fig. 11).  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 worker_object_results_sig <- subset(worker_results_df,
-                                    padj < 0.05 &
-                                      absLog2FC >= 1)
+                                    padj < 0.05)
 queen_object_results_sig <- subset(queen_results_df,
-                                    padj < 0.05 &
-                                      absLog2FC >= 1)
+                                    padj < 0.05)
 
 ## Compare overlap of differentially expressed genes:
 venneu_tissue_comparison <- euler(combinations = list("Worker DE genes" = row.names(worker_object_results_sig),
@@ -1255,7 +1211,7 @@ tmp$V5 <- as.numeric(as.character(unlist(tmp$V5)))
 To further examine similarities in terms of gene expression in response to insemination,
 we ranked genes based on log2 fold change between inseminated and control bees for 
 each caste and performed a Pearson's coefficient correlation based on log2 fold change 
-identifying a weak (but significant) positive correlation ( _R_ = 0.12, *p* < 0.05; Fig. 12).
+identifying a significant positive correlation ( _R_ = 0.47, *p* < 0.05; Fig. 12).
 
 ```{r figure12, ref.label = "figure12", fig.width = 6, fig.height = 4, fig.align = 'center', echo = FALSE, message=FALSE, warning=FALSE}
 ## Generate a scatterplot:
@@ -1362,7 +1318,7 @@ dds_stage <- DESeqDataSetFromHTSeqCount(sampleTable = samples_info,
                                          treatment_group)
 
 dds_stage$stage <- relevel(dds_stage$stage,
-                           ref = "Stage_I")
+                           ref = "2")
 
 ## Create a DESeq2 object:
 stage_object  <- DESeq(dds_stage,
@@ -1373,7 +1329,7 @@ stage_object  <- DESeq(dds_stage,
 resultsNames(stage_object)
 ## Extract results:
 four_two_object_results <- results(stage_object,
-                                 name = "stage_Stage_II_vs_Stage_I")
+                                 name = "stage_4_vs_2")
 four_two_object_results_df <- as.data.frame(four_two_object_results)
 four_two_object_results_sig <- subset(four_two_object_results_df,
                                       padj < 0.05)
@@ -1382,7 +1338,7 @@ nrow(four_two_object_results_sig)
 four_two_plot <- plot_volcano(four_two_object_results_df)
 
 eight_two_object_results <- results(stage_object,
-                                 name = "stage_Stage_IV_vs_Stage_I")
+                                 name = "stage_8_vs_2")
 eight_two_object_results_df <- as.data.frame(eight_two_object_results)
 eight_two_object_results_sig <- subset(eight_two_object_results_df,
                                       padj < 0.05)
