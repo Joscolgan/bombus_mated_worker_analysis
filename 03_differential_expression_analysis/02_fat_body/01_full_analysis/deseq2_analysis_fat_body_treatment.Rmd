@@ -1,6 +1,6 @@
 ---
 author: "Joe Colgan"
-title: "**Transcriptomic analysis of fat bodies of control and inseminated _Bombus terrestris_ workers and queens**"
+title: "**Transcriptomic analysis of fat body of control and inseminated _Bombus terrestris_ workers and queens**"
 output:
   pdf_document: default
   html_document: default
@@ -14,8 +14,8 @@ The purpose of the present analysis is to examine similarities and differences i
 included treatment groups to examine changes in gene expression due to artificial insemination alone as well as the dilutant used during the insemination step.  
 
 ## Samples:  
-The 'Fat body' dataset consists of 72 samples:  
-**Queen samples:** n = 24 
+The 'fat body' dataset consists of 72 samples:  
+**Queen samples:** n = 24  
 - Control (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)
 - Insemination (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)  
 
@@ -34,12 +34,12 @@ _Bombus terrestris_ reference genome assembly using [STAR](https://github.com/al
 ## Results  
 The first aspect of the analysis involved examining outliers.  
 First, the number of expressed genes was compared across individuals using an upset plot (Fig. 1).  
-This revealed **9103** genes expressed in all samples (approximately 79% of all genes (n = 11557) expressed in the fat body).   
+This revealed **8603** genes expressed in all samples (approximately 75% of all genes (n = 11440) expressed in the fat body).   
 Second, density plots were generated for the percentage of expressed genes per sample for:
 - Caste (Fig. 2A)
 - Treatment (Fig. 2B)
 - Stage (Fig. 2C)  
-There was a significant difference  in terms of the mean percentage of expressed genes across castes (t-test; p = 0.04), but no difference between treatments (ANOVA; p = 0.5) and stage (ANOVA; p = 0.34).  
+There was no significant difference  in terms of the mean percentage of expressed genes across castes (t-test; p = 0.07), and treatments (ANOVA; p = 0.2) but there was for stage (ANOVA; p < 0.05).  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Step One: Load libraries - if not present, install from scratch.
@@ -145,6 +145,21 @@ dds_htseq <- DESeqDataSetFromHTSeqCount(sampleTable = samples_info,
                                        design = ~ caste +
                                                   stage +
                                                   treatment_group)
+
+## Extract and save counts:
+dds_htseq_counts <- counts(dds_htseq)
+colnames(dds_htseq_counts) <- gsub(pattern = ".ReadsPerGene.out.tab",
+                                   replacement = "",
+                                   colnames(dds_htseq_counts))
+## Save to file:
+write.table(x = dds_htseq_counts,
+            file = "results/all_fat_body_counts.txt",
+            row.names = TRUE,
+            col.names = TRUE,
+            quote = FALSE,
+            sep = "\t")
+
+## Remove low counts:
 keep <- rowSums(counts(dds_htseq)) >= 10
 dds_htseq <- dds_htseq[keep, ]
 
@@ -161,7 +176,7 @@ for (name in 1:ncol(counts)){
 }
 
 ## Plot upSet plot and save as a PDF:
-pdf(file = "results/fat_body_upset_plot.pdf",
+pdf(file = "results/upset_plot.pdf",
     height = 12,
     width = 8) # or other device
 UpSetR::upset(fromList(new_list), 
@@ -277,6 +292,9 @@ ggarrange(density_caste_plot,
           labels = c("A",
                      "B",
                      "C"))
+
+#samples_to_keep <- colnames(counts(dds_htseq)) != "B37.ReadsPerGene.out.tab"
+#dds_htseq <- dds_htseq[, samples_to_keep]
 ```
 
 _**Fig. 2.** Density plots displaying percentage of genes expressed across samples, including: A) caste (red = "queen", blue = "worker); B) treatment (red = "control", blue = "treatment"); and C) stage of ovarian development (blue = "two days", green = "four days", red = "eight days")._  
@@ -285,7 +303,7 @@ _**Fig. 2.** Density plots displaying percentage of genes expressed across sampl
 
 ## Sample clustering.  
 To examine general similarities and differences within and between group, a distance matrix based
-on variance stabilising transformed (VST) counts was performed.
+on variance stabilising transformed (VST) counts was performed. This did highlight one sample "37" as being quite different from the rest in terms of expression profiles.  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Create a DESeq2 object:
@@ -297,17 +315,6 @@ deseq_object  <- DESeq(dds_htseq,
 vsd <- vst(deseq_object,
              blind = FALSE)
 
-vsd$stage <- gsub(pattern = "_", replacement = " ", vsd$stage)
-## Rename rownames:
-vsd$treatment_group <- gsub(pattern = "Insemination_group",
-                                        replacement = "AI group 1",
-                                        vsd$treatment_group)
-vsd$treatment_group <- gsub(pattern = "Insemination_with_dilutent",
-                                        replacement = "AI group 2",
-                                        vsd$treatment_group)
-vsd$treatment_group <- gsub(pattern = "Insemination_with_nothing",
-                                        replacement = "AI group 3",
-                                        vsd$treatment_group)
 ## Save object:
 saveRDS(object = vsd,
         file = "results/vsd_fat_body_treatment.rds")
@@ -328,49 +335,16 @@ pheatmap(sampleDistMatrix,
          clustering_distance_rows = sampleDists,
          clustering_distance_cols = sampleDists,
          col = colors)
-
-## Rename rownames:
-rownames(sampleDistMatrix) <- gsub(pattern = "Insemination_group",
-                                        replacement = "AI_group_1",
-                                        row.names(sampleDistMatrix))
-
-rownames(sampleDistMatrix) <- gsub(pattern = "Insemination_with_dilutent",
-                                        replacement = "AI_group_2",
-                                        row.names(sampleDistMatrix))
-
-rownames(sampleDistMatrix) <- gsub(pattern = "Insemination_with_nothing",
-                                        replacement = "AI_group_3",
-                                        row.names(sampleDistMatrix))
-
-pheatmap(sampleDistMatrix,
-         clustering_distance_rows = sampleDists,
-         clustering_distance_cols = sampleDists,
-         col = colors)
 ```
 
 _**Fig. 3.** Heatmap displaying distance matrix of genes expressed within and across samples._   
-
-```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
-#poisd <- PoissonDistance(t(counts(dds_htseq)))
-
-#samplePoisDistMatrix <- as.matrix(poisd$dd)
-#rownames(samplePoisDistMatrix) <- paste(dds_htseq$caste,
-#                                        dds_htseq$treatment_group,
-#                                        sep=" - " )
-#colnames(samplePoisDistMatrix) <- NULL
-```
-
-```{r figure4, ref.label = "figure4", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
-#pheatmap(samplePoisDistMatrix,
-#         clustering_distance_rows = poisd$dd,
-#         clustering_distance_cols = poisd$dd)
-```
 
 \newpage  
 
 ## Principal component analysis.  
 
-To examine further similarities in terms of expression profiles across samples, a principal component analysis using VST gene values was performed. The first principal component, which explains 55% of the variance in the dataset identifies the possibility of outliers with no clear difference explained by the first two components that separate caste. There was evidence that one of the treatments may be driving the pattern (Fig. 5). It was decided to rerun the PCA with the four samples separated by PC1 removed to provide more resolution on differences between samples    
+## Full data:  
+To examine further similarities in terms of expression profiles across samples, a principal component analysis using VST gene values was performed. The first and second principal components, which explains 32%  and 23% of the variance in the dataset, respectively, identify two outliers (Fig. 4).The third PC (17%) separates workers and queens. There was no clear clustering by treatment based on the first four PCs (Fig. 5). In terms of clustering by stage, the first PC also separates individuals that have stage IV ovarian development from the rest (Fig. 6). It was decided to rerun the PCA with the two potential outlier samples removed to provide more resolution on differences between samples.      
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Here set the two principal components that you want to compare:
 ## It can any combination between 1 and 22:
@@ -422,11 +396,11 @@ plotPCA.san <- function(object,
                        size = 3) +
             xlab(paste0("PC", first_pc, ": ",
                         round(percentVar[first_pc] * 100),
-                        "%")) +
+                        "% Variance")) +
             ylab(paste0("PC", second_pc, ": ",
                         round(percentVar[second_pc] * 100),
-                        "%")) +
-            #coord_fixed() +
+                        "% Variance")) +
+            coord_fixed() +
             #geom_text_repel(size = 3) +
             theme_bw() +
             theme(axis.title = element_text(size = 12,
@@ -471,7 +445,7 @@ caste_plot_pc1_4 <- caste_plot_pc1_4 +
   scale_fill_discrete(name = "Caste")
 ```
 
-```{r figure6, ref.label = "figure6", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
+```{r figure5, ref.label = "figure5", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
 ggarrange(caste_plot_pc1_2,
           caste_plot_pc1_3,
           caste_plot_pc1_4,
@@ -507,7 +481,7 @@ group_plot_pc1_4 <- group_plot_pc1_4 +
   scale_fill_discrete(name = "Treatment")
 ```
 
-```{r figure5, ref.label = "figure5", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
+```{r figure6, ref.label = "figure6", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
 ggarrange(group_plot_pc1_2,
           group_plot_pc1_3,
           group_plot_pc1_4,
@@ -548,7 +522,8 @@ ggarrange(stage_plot_pc1_2,
           stage_plot_pc1_4,
           nrow = 1,
           ncol = 3,
-          align = "hv")
+          align = "hv",
+          legend = "none")
 ```
 _**Fig. 6.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (two days = "blue"; four days = "green"; eight days = "red")_    
 
@@ -561,13 +536,15 @@ pca_df <- as.data.frame(pca$x)
 summary(pca)
 ```
 
-So appears there are a few outliers - if we remove:
+So appears there are a few outliers - if we remove:  
+## Reduced data:  
+To examine further similarities in terms of expression profiles across samples, a principal component analysis using VST gene values was performed. The first principal component, which explains 37% of the variance in the dataset, which separates individuals based on stage of ovarian development with stage IV individuals clearly separating from individuals with stage I and stage II ovarian development. PC2, which explains 30% of the variance in the dataset, separates castes. In comparison to caste and stage, there is less clear clustering for individuals based on treatment from the first four PCs, which explained a combined 78% of the variance.     
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Identify outliers:
 ## Based on PCs 1 and 2, anything right of 10 on PC1 is likely an outlier:
 samples_to_keep <- subset(x = pca_df,
-                          PC2 < 50)
+                          PC1 > -40)
 samples_to_keep <- row.names(samples_to_keep)
 
 dds_htseq <- dds_htseq[, samples_to_keep]
@@ -581,43 +558,47 @@ deseq_object  <- DESeq(dds_htseq,
 vsd <- vst(deseq_object,
              blind = FALSE)
 
+## Rename rownames:
+vsd$treatment_group <- gsub(pattern = "Insemination_group",
+                            replacement = "AI Group 1",
+                            vsd$treatment_group)
+
+vsd$treatment_group <- gsub(pattern = "Insemination_with_dilutent",
+                            replacement = "AI Group 2",
+                            vsd$treatment_group)
+
+vsd$treatment_group <- gsub(pattern = "Insemination_with_nothing",
+                            replacement = "AI Group 3",
+                            vsd$treatment_group)
+
 vsd$stage <- gsub(pattern = "_",
                   replacement = " ",
                   vsd$stage)
 
-## Rename rownames:
-vsd$treatment_group <- gsub(pattern = "Insemination_group",
-                                        replacement = "AI group 1",
-                                        vsd$treatment_group)
+## Calculate distance between samples:
+sample_dists <- dist(t(assay(vsd)))
 
-vsd$treatment_group <- gsub(pattern = "Insemination_with_dilutent",
-                                        replacement = "AI group 2",
-                                        vsd$treatment_group)
+## Convert to a matrix:
+sample_dist_matrix <- as.matrix(sample_dists)
 
-vsd$treatment_group <- gsub(pattern = "Insemination_with_nothing",
-                                        replacement = "AI group 3",
-                                        vsd$treatment_group)
+rownames(sample_dist_matrix) <- paste(vsd$caste,
+                                      vsd$treatment_group,
+                                      vsd$stage,
+                                      sep = " - ")
+colnames(sample_dist_matrix) <- NULL
+colors <- colorRampPalette(rev(brewer.pal(9,
+                                          "Blues")))(255)
 
-sampleDists <- dist(t(assay(vsd)))
-
-sampleDistMatrix <- as.matrix( sampleDists )
-rownames(sampleDistMatrix) <- paste( vsd$caste,
-                                     vsd$treatment_group,
-                                     vsd$stage,
-                                     sep = " - " )
-colnames(sampleDistMatrix) <- NULL
-colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
-
+## Export heatmap of clustered samples:
 pdf(file = "results/fat_body_filtered_pheatmap.pdf",
     height = 10,
     width = 10)
-fat_body_heatmap_filtered <- pheatmap(sampleDistMatrix,
-                                   clustering_distance_rows = sampleDists,
-                                   clustering_distance_cols = sampleDists,
+fb_heatmap_filtered <- pheatmap(sample_dist_matrix,
+                                   clustering_distance_rows = sample_dists,
+                                   clustering_distance_cols = sample_dists,
                                    col = colors)
 dev.off()
 
-#group_plot + geom_text(aes(label=colnames(vsd)),vjust=2)
 ## Generate plot:
 caste_plot_pc1_2 <- plotPCA.san(vsd,
                           first_pc = 1,
@@ -641,14 +622,14 @@ caste_plot_pc1_4 <- caste_plot_pc1_4 +
   scale_fill_discrete(name = "Caste")
 ```
 
-```{r figure6, ref.label = "figure6", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
-combined_caste_plot <- ggarrange(caste_plot_pc1_2,
+```{r figure8, ref.label = "figure8", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
+ggarrange(caste_plot_pc1_2,
           caste_plot_pc1_3,
           caste_plot_pc1_4,
           nrow = 1,
           ncol = 3,
           align = "hv",
-          common.legend = TRUE)
+          legend = "none")
 ```
 
 _**Fig. 4.** Principal component analysis with first two principal components shown. Individuals are coloured by caste (queen = "red"; worker = "blue)._  
@@ -660,34 +641,31 @@ group_plot_pc1_2 <- plotPCA.san(vsd,
                           second_pc = 2,
             intgroup = c("treatment_group"))
 group_plot_pc1_2 <- group_plot_pc1_2 +
-  scale_fill_brewer(name = "Treatment",
-                    palette = "Blues")
+  scale_fill_discrete(name = "Treatment")
 
 group_plot_pc1_3 <- plotPCA.san(vsd,
                           first_pc = 1,
                           second_pc = 3,
             intgroup = c("treatment_group"))
 group_plot_pc1_3 <- group_plot_pc1_3 +
-  scale_fill_brewer(name = "Treatment",
-                    palette = "Blues")
+  scale_fill_discrete(name = "Treatment")
 
 group_plot_pc1_4 <- plotPCA.san(vsd,
                           first_pc = 1,
                           second_pc = 4,
             intgroup = c("treatment_group"))
 group_plot_pc1_4 <- group_plot_pc1_4 +
-  scale_fill_brewer(name = "Treatment",
-                    palette = "Blues")
+  scale_fill_discrete(name = "Treatment")
 ```
 
-```{r figure5, ref.label = "figure5", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
-combined_group_plot <- ggarrange(group_plot_pc1_2,
+```{r figure9, ref.label = "figure9", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
+ggarrange(group_plot_pc1_2,
           group_plot_pc1_3,
           group_plot_pc1_4,
           nrow = 1,
           ncol = 3,
           align = "hv",
-          common.legend = TRUE)
+          legend = "none")
 ```
 
 _**Fig. 5.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (control = "red"; inseminated group = "blue)._  
@@ -698,40 +676,31 @@ stage_plot_pc1_2 <- plotPCA.san(vsd,
                           second_pc = 2,
             intgroup = c("stage"))
 stage_plot_pc1_2 <- stage_plot_pc1_2 +
-  scale_fill_manual(name = "Stage",
-                    values = c("black",
-                               "grey",
-                               "white"))
+  scale_fill_discrete(name = "Stage")
 
 stage_plot_pc1_3 <- plotPCA.san(vsd,
                           first_pc = 1,
                           second_pc = 3,
             intgroup = c("stage"))
 stage_plot_pc1_3 <- stage_plot_pc1_3 +
-  scale_fill_manual(name = "Stage",
-                    values = c("black",
-                               "grey",
-                               "white"))
+  scale_fill_discrete(name = "Stage")
 
 stage_plot_pc1_4 <- plotPCA.san(vsd,
                           first_pc = 1,
                           second_pc = 4,
             intgroup = c("stage"))
 stage_plot_pc1_4 <- stage_plot_pc1_4 +
-  scale_fill_manual(name = "Stage",
-                    values = c("black",
-                               "grey",
-                               "white"))
+  scale_fill_discrete(name = "Stage")
 ```
 
-```{r figure7, ref.label = "figure7", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
-combined_stage_plot <- ggarrange(stage_plot_pc1_2,
+```{r figure10, ref.label = "figure10", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
+ggarrange(stage_plot_pc1_2,
           stage_plot_pc1_3,
           stage_plot_pc1_4,
           nrow = 1,
           ncol = 3,
           align = "hv",
-          common.legend = TRUE)
+          legend = "none")
 ```
 _**Fig. 6.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (two days = "blue"; four days = "green"; eight days = "red")_    
 
@@ -744,34 +713,12 @@ pca_df <- as.data.frame(pca$x)
 summary(pca)
 ```
 
-Generate a combined plot:
-
-```{r, message = FALSE}
-pca_combined <- ggarrange(combined_caste_plot,
-                          combined_group_plot,
-                          combined_stage_plot,
-          nrow = 3,
-          ncol = 1,
-          labels = c("A",
-                     "B",
-                     "C"),
-          align = "hv")
-
-## Print to console:
-(pca_combined)
-
-## Save to file:
-ggsave(filename = "results/fat_body_filtered_pca_plot.pdf",
-       height = 8,
-       width = 8)
-```
-
 ## Differential expression analysis:  
 As a preliminary examination of differences in gene expression due to treatment,
 all samples, irrespective of caste and stage, were included in a differential expression 
 analysis.
 
-**Model 1:** To examine the effect of **treatment** on fat body gene expression, we constructed a _full model_ consisting of:  
+**Model 1:** To examine the effect of **treatment** on brain gene expression, we constructed a _full model_ consisting of:  
 gene expression = ~treatment + caste + stage;   
 and a _reduced model_ of:  
 gene expression = ~caste + stage  
@@ -779,17 +726,17 @@ gene expression = ~caste + stage
 From this model, a total of **2239** genes were identified as significantly differentiated expressed (adjusted _p_ value < 0.05; Fig. 7) across treatments.  
 
 Applying a more stringent threshold to examine specific differences between treatment groups for significant differential expression based on adjusted
-_p_ value and a minimum of absolute log2 fold change of 1, our model identifies **102** (Fig. 8)
-significantly differentially expressed genes with the majority (n = **96**) having elevated 
-expression in the fat body of inseminated bees, which is significant deviation from equal outcome of expression profiles for differentially expressed genes (binomial test; *p* < 0.05).  
+_p_ value and a minimum of absolute log2 fold change of 1, our model identifies **61** (Fig. 8)
+significantly differentially expressed genes with the majority (n = **50**) having elevated 
+expression in the brain of inseminated bees, which is significant deviation from equal outcome of expression profiles for differentially expressed genes (binomial test; *p* < 0.05).  
 
 **Comparison of dilutant group and control bees**: Our model identifies **38** (Fig. 8)
 significantly differentially expressed genes with the majority (n = **34**) having elevated 
-expression in the fat bodies of bees inseminated only with dilutant.  
+expression in the brain of bees inseminated only with dilutant.  
 
 **Comparison of the "nothing" group and control bees**: Our model identifies **64** (Fig. 8)
 significantly differentially expressed genes with the majority (n = **39**) having elevated 
-expression in the fat bodies of bees treated only with the needle. A complication with this 
+expression in the brain of bees treated only with the needle. A complication with this 
 specific analysis is the low sample size of "nothing group", which consists of six individuals 
 after the removal of outlier samples.  
 
@@ -800,7 +747,7 @@ resultsNames(deseq_object)
 res <- results(deseq_object)
 ```
 
-```{r figure8, ref.label = "figure8", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
+```{r figure11, ref.label = "figure11", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
 ## Plot distribution of adjusted p values:
 hist(res$padj[res$baseMean > 1],
      breaks = 0:20/20,
@@ -811,7 +758,6 @@ hist(res$padj[res$baseMean > 1],
 ```
 _**Fig. 7** Histogram of adjiusted p values for differentially expressed genes between treatment groups._    
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
-resultsNames(deseq_object)
 ## Extract results:
 deseq_object_results <- results(deseq_object,
                                       name = "treatment_group_Insemination_group_vs_Control")
@@ -819,7 +765,8 @@ deseq_object_results <- results(deseq_object,
 ## Extract significant phenotype genes:
 deseq_object_results$absL2FC <- abs(deseq_object_results$log2FoldChange)
 deseq_object_results_sig     <- subset(x = deseq_object_results,
-                                           padj < 0.05)
+                                           padj < 0.05 &
+                                           absL2FC > 1)
 nrow(deseq_object_results_sig)
 
 ## Convert DESeq2 result object to a dataframe:
@@ -937,7 +884,6 @@ dilutant_volcano_plot <- ggplot(dilutant_object_results,
 ```
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 resultsNames(deseq_object)
-
 ## Extract results:
 injection_object_results <- results(deseq_object,
                                       name = "treatment_group_Insemination_with_nothing_vs_Control")
@@ -1000,7 +946,7 @@ injection_volcano_plot <- ggplot(injection_object_results,
 ```
 
 
-```{r figure9, ref.label = "figure9", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE, warning=FALSE}  
+```{r figure12, ref.label = "figure12", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE, warning=FALSE}  
 ## Print to console:
 ggarrange(volcano_plot,
           dilutant_volcano_plot,
@@ -1026,15 +972,9 @@ treatment_comparison_plot <- plot(venneu_treatment_comparison,
                                quantities = TRUE,
                                edges = TRUE,
                                labels = list(fontsize = 12))
-
-pdf(file = "results/fat_body_filter_venn_diagram_degs.pdf",
-    height = 10,
-    width = 10)
-treatment_comparison_plot
-dev.off()
-
+         
 saveRDS(object = deseq_object_results,
-        file = "results/deseq_object_results_treatment.rds")
+        file = "results/fat_body_deseq_object_results_treatment.rds")
 ```
 _**Fig. 8.** Volcano plots displaying differences in gene expression across bumblebees differing in insemination status._   
 
@@ -1047,7 +987,7 @@ Full model: gene expression = ~treatment + caste + stage + caste:stage
 We then construct a _reduced model_ consisting of:
 gene expression = ~treatment + caste + stage  
 
-Analysis identified **1419** genes as differentially expressed (adjusted _p_ value < 0.05) between stage depending on caste. This however could be a consequence of the increased number of worker samples, including more divergent groupings.  
+Analysis identified **3335** genes as differentially expressed (adjusted _p_ value < 0.05) between stage depending on caste. This however could be a consequence of the increased number of worker samples, including more divergent groupings.  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Build DESeq2 dataset:
@@ -1088,8 +1028,8 @@ A related question - how similar are differences between control and inseminated
 ## Overlap analysis of differentially expressed genes:  
 If we subset the dataset into workers and queens and examine differentially expressed genes with caste-restricted analyses, do we find the same differentially expressed genes between artifically inseminated and control bumblebees.  
 
-Using all worker samples, **1527** genes were differentially expressed between inseminated and control bees. Applying a threshold of absolute log2 fold change of 1, we reduce our
-number of differentially expressed genes to **415** (Fig. 10A).  
+Using all worker samples, **2249** genes were differentially expressed between inseminated and control bees. Applying a threshold of absolute log2 fold change of 1, we reduce our
+number of differentially expressed genes to **226** (Fig. 10A).  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## For this analysis, we will restrict to only 'control' and 'inseminated samples':
@@ -1164,7 +1104,8 @@ saveRDS(object = worker_results_df,
         file = "results/fat_body_deseq_object_results_worker_treatment.rds")
 ```
 
-Using all queen samples, **2196** genes were differentially expressed between inseminated and control bees (Fig. 10B). 
+Using all queen samples, **940** genes were differentially expressed between inseminated and control bees. Applying a threshold of absolute log2 fold change of 1, we reduce our
+number of differentially expressed genes to **84** (Fig. 10B).
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 run_caste_deseq(specific_caste = "Queen")
@@ -1181,7 +1122,7 @@ volcano_queen <- plot_volcano(input = queen_results_df)
 saveRDS(object = queen_results_df,
         file = "results/fat_body_deseq_object_results_queen_treatment.rds")
 ```
-```{r figure10, ref.label = "figure10", fig.width = 6, fig.height = 4, echo = FALSE, message=FALSE, warning=FALSE}
+```{r figure13, ref.label = "figure13", fig.width = 6, fig.height = 4, echo = FALSE, message=FALSE, warning=FALSE}
 ## Print to console:
 ggarrange(volcano_worker,
           volcano_queen,
@@ -1193,7 +1134,7 @@ ggarrange(volcano_worker,
           legend = "none")
 ```
 
-_**Fig. 10.** Volcano plots displaying differences in gene expression of spermetheca sampled from (A) workers and (B) queens differing in insemination status._     
+_**Fig. 10.** Volcano plots displaying differences in gene expression of fat body sampled from (A) workers and (B) queens differing in insemination status._     
 
 \newpage
 
@@ -1219,7 +1160,7 @@ tissue_comparison_plot <- plot(venneu_tissue_comparison,
                                labels = list(fontsize = 12))
 ```
 
-```{r figure11, ref.label = "figure11", fig.width = 4, fig.height = 2, fig.align = 'center', echo = FALSE, message=FALSE, warning=FALSE}
+```{r figure14, ref.label = "figure14", fig.width = 4, fig.height = 2, fig.align = 'center', echo = FALSE, message=FALSE, warning=FALSE}
 tissue_comparison_plot
 ```
 
@@ -1257,9 +1198,9 @@ tmp$V5 <- as.numeric(as.character(unlist(tmp$V5)))
 To further examine similarities in terms of gene expression in response to insemination,
 we ranked genes based on log2 fold change between inseminated and control bees for 
 each caste and performed a Pearson's coefficient correlation based on log2 fold change 
-identifying a weak (but significant) positive correlation ( _R_ = 0.12, *p* < 0.05; Fig. 12).
+identifying a very weak (but significant) positive correlation ( _R_ = 0.021, *p* < 0.05; Fig. 12) but significance is likely a consequence of many data points and therefore, not biologically meaningful.
 
-```{r figure12, ref.label = "figure12", fig.width = 6, fig.height = 4, fig.align = 'center', echo = FALSE, message=FALSE, warning=FALSE}
+```{r figure15, ref.label = "figure15", fig.width = 6, fig.height = 4, fig.align = 'center', echo = FALSE, message=FALSE, warning=FALSE}
 ## Generate a scatterplot:
 ggplot(data = tmp,
        aes(x = V2,
@@ -1283,293 +1224,6 @@ ggplot(data = tmp,
 ```
 
 _**Fig. 12.** Scatterplot of correlation between log2 fold change in gene expression for inseminated and control for both bumblebee workers and queens. Each individual point represents a gene with coloured points representing genes with statistically significant differences in gene expression between treatment groups. Different colours represent different castes (red = worker, blue = queen, purple = overlap)._  
-
-## Gene Ontology enrichment analysis:
-As a complementary approach to examine overlap in terms of higher processes related
-to differential gene expression, rank-based Gene Ontology enrichment analyses were performed
-for both worker and queen datasets, respectively. For each dataset, log2 fold change for
-inseminated bees versus control was used as a ranking measure and converted into a range
-from 1 to 0 to allow for implementation of a KS test in topGO, which analysed each GO term
-subcategory (biological process (BP); molecular function (MF); and celluar component (CC))
-in turn. Correction for multiple testing was performed using the Benjamini-Hochberg method. 
-For both worker and queen datasets, significantly enriched GO terms (n = 47 and 84, respectively)  
-were examined for overlap using a Euler plot identifying 32 enriched GO terms shared amongst
-both the worker and queen significantly differentially expressed genes providing further insight
-into similar changes in both castes in terms of gene expression in response to insemination.  
-
-```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
-## Read in enriched go terms:
-go_terms_worker_bp <- read.table(file = "data/output_20_ks_log2FC_worker_classic/BP_sig.tsv",
-                              header = TRUE)
-go_terms_worker_bp$GO.ID <- as.character(unlist(go_terms_worker_bp$GO.ID))
-nrow(go_terms_worker_bp)
-go_terms_queen_bp <- read.table(file = "data/output_20_ks_log2FC_queen_classic/BP_sig.tsv",
-                              header = TRUE)
-nrow(go_terms_queen_bp)
-go_terms_queen_bp$GO.ID <- as.character(unlist(go_terms_queen_bp$GO.ID))
-go_terms_worker_cc <- read.table(file = "data/output_20_ks_log2FC_worker_classic/CC_sig.tsv",
-                              header = TRUE)
-go_terms_worker_cc$GO.ID <- as.character(unlist(go_terms_worker_cc$GO.ID))
-go_terms_queen_cc <- read.table(file = "data/output_20_ks_log2FC_queen_classic/CC_sig.tsv",
-                              header = TRUE)
-go_terms_queen_cc$GO.ID <- as.character(unlist(go_terms_queen_cc$GO.ID))
-
-go_terms_worker_mf <- read.table(file = "data/output_20_ks_log2FC_worker_classic/MF_sig.tsv",
-                              header = TRUE)
-go_terms_worker_mf$GO.ID <- as.character(unlist(go_terms_worker_mf$GO.ID))
-
-go_terms_queen_mf <- read.table(file = "data/output_20_ks_log2FC_queen_classic/MF_sig.tsv",
-                              header = TRUE)
-go_terms_queen_mf$GO.ID <- as.character(unlist(go_terms_queen_mf$GO.ID))
-
-## Extract and compare significantly enriched GO terms:
-go_term_comparison <- euler(combinations = list("Worker GO terms" = c(subset(x = go_terms_worker_bp,
-                                                                            classic_ks_adjusted < 0.05)$GO.ID,
-                                                                      subset(x = go_terms_worker_cc,
-                                                                             classic_ks_adjusted < 0.05)$GO.ID,
-                                                                      subset(x = go_terms_worker_mf,
-                                                                             classic_ks_adjusted < 0.05)$GO.ID),
-                                                      "Queen GO terms" = c(subset(x = go_terms_queen_bp,
-                                                                                  classic_ks_adjusted < 0.05)$GO.ID,
-                                                                          subset(x = go_terms_queen_cc,
-                                                                                 classic_ks_adjusted < 0.05)$GO.ID,
-                                                                           subset(x = go_terms_queen_mf,
-                                                                                  classic_ks_adjusted < 0.05)$GO.ID)))
-## Generate plot:
-go_term_comparison_plot <- plot(go_term_comparison,
-                               quantities = TRUE,
-                               edges = TRUE,
-                               labels = list(fontsize = 12))
-```
-
-```{r figure13, ref.label = "figure13", fig.width = 4, fig.height = 2, fig.align = 'center',, echo = FALSE, message=FALSE, warning=FALSE}
-go_term_comparison_plot
-```
-
-_**Fig. 13.** Euler plot of enriched GO terms between inseminated and control individuals for each caste._    
-
-## Time-series analysis:
-The last item to examine was if there was a change in gene expression with stage. For the present tissue,
-there exists samples for:  
-- **Workers** at two hours (Control only), four hours (insemination and control) and eight hours (insemination and control)  
-- **Queen** timepoints at two hours (Control only), four hours (insemination and control) and eight hours (insemination and control)   
-
-- There are **3894** genes that are significantly differentially expressed across stages.  
-
-```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
-dds_stage <- DESeqDataSetFromHTSeqCount(sampleTable = samples_info,
-                                       directory = directory,
-                                       design = ~caste +
-                                         stage +
-                                         treatment_group)
-
-dds_stage$stage <- relevel(dds_stage$stage,
-                           ref = "Stage_I")
-
-## Create a DESeq2 object:
-stage_object  <- DESeq(dds_stage,
-                       test = "LRT",
-                       reduced = ~caste + treatment_group)
-
-## Check names of comparisons:
-resultsNames(stage_object)
-## Extract results:
-four_two_object_results <- results(stage_object,
-                                 name = "stage_Stage_II_vs_Stage_I")
-four_two_object_results_df <- as.data.frame(four_two_object_results)
-four_two_object_results_sig <- subset(four_two_object_results_df,
-                                      padj < 0.05)
-nrow(four_two_object_results_sig)
-
-four_two_plot <- plot_volcano(four_two_object_results_df)
-
-eight_two_object_results <- results(stage_object,
-                                 name = "stage_Stage_IV_vs_Stage_I")
-eight_two_object_results_df <- as.data.frame(eight_two_object_results)
-eight_two_object_results_sig <- subset(eight_two_object_results_df,
-                                      padj < 0.05)
-nrow(eight_two_object_results_sig)
-
-eight_two_plot <- plot_volcano(eight_two_object_results_df)
-```
-
-To check if there is an interaction between treatment and stage:  
-- Using there **45** genes that significant differentially expressed between treatments over time.   
-
-```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
-samples_information_minus_day_two <- subset(samples_info,
-                                            stage != "2")
-
-dds_stage <- DESeqDataSetFromHTSeqCount(sampleTable = samples_information_minus_day_two,
-                                       directory = directory,
-                                       design = ~caste +
-                                         stage +
-                                         treatment_group + stage:treatment_group)
-
-## Create a DESeq2 object:
-stage_object  <- DESeq(dds_stage,
-                       test = "LRT",
-                       reduced = ~caste + stage + treatment_group)
-
-## Check names of comparisons:
-resultsNames(stage_object)
-
-stage_treatment_results <- results(stage_object,
-                                 name = "stage8.treatment_groupInsemination")
-
-## Subset significant results:
-stage_treatment_sig <- subset(stage_treatment_results,
-                              padj < 0.05)
-nrow(stage_treatment_sig)
-```
-
-\newpage  
-
-## Weighted gene co-expression network analysis:
-
-Weighted gene co-expression network analysis was performed using the R package, WCGNA. 
-The WGCNA identified five modules, of which two modules ("red" (n = 158 genes) 
-and "yellow" (n = 904)) were significantly positively correlated with treatment 
-(Fig. 14). We can also quantify associations of individual genes with treatment by 
-defining gene significance (GS() as (the absolute value of) the correlation between a 
-gene and treatment. For each module, we also define a quantitative measure of 
-module membership (MM) as the correlation of the module eigengene (summary profile) 
-and the gene expression profile. This allows us to quantify the similarity of all genes 
-on the array to every module.  
-
-```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
-## Load saved R objects from the WGCNA analysis:
-load(file = "data/spermatheca-03-input_for_labelled_heatmap.RData")
-load(file = "data/spermatheca-04-input_for_membership_scatterplot.RData")
-```
-
-```{r figure14, ref.label = "figure14", fig.width = 6, fig.height = 4, fig.align = 'center',, echo = FALSE, message=FALSE, warning=FALSE}
-par(mar = c(6, 8.5, 3, 3));
-# Display the correlation values within a heatmap plot
-labeledHeatmap(Matrix = exp_moduleTraitCor,
-             xLabels = names(samples_information),
-             yLabels = names(exp_MEs),
-             ySymbols = names(exp_MEs),
-             colorLabels = FALSE,
-             colors = blueWhiteRed(50),
-             textMatrix = exp_textMatrix,
-             setStdMargins = FALSE,
-             cex.text = 0.5,
-             zlim = c(-1,1),
-             main = paste("Module-category relationships"))
-```
-
-_**Fig. 14.** Heatmap displaying correlative relationships between WGCNA modules and categories (caste, stage, and treatment) of interest._    
-
-```{r figure15, ref.label = "figure15", fig.width = 6, fig.height = 4, fig.align = 'center',, echo = FALSE, message=FALSE, warning=FALSE}
-par(mar = c(6, 8.5, 3, 3));
-par(mfrow = c(1,1));
-verboseScatterplot(abs(exp_geneModuleMembership[exp_moduleGenes, exp_column]),
-                   abs(exp_geneTraitSignificance[exp_moduleGenes, 1]),
-                 xlab = paste("Module Membership in", exp_module, "module"),
-                 ylab = "Gene significance for treatment",
-                 main = paste("Module membership vs. gene significance\n"),
-                 cex.main = 1.2, cex.lab = 1.2, cex.axis = 1.2, col = exp_module)
-
-## Subset "red" genes:
-yellow_genes <- row.names(exp_geneModuleMembership[exp_moduleGenes, ])
-```
-
-_**Fig. 15.** Scatterplot displaying correlative relationship between gene significance and module membership for a module of interest. Here, the "red" module is shown._  
-
-Using genes associated with both modules of interest, Gene Ontology term enrichment
-analysis was performed for genes in each module to examine enriched GO terms associated
-with biological processes, molecular functions and cellular components. Using Fisher's 
-Exact test with a significance threshold of _p_ < 0.05, we find genes located in the 
-red module enriched for 15 GO terms, while genes associated with the yellow module 
-were significantly enriched for 65 GO terms.  
-
-```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
-## Load enriched GO terms:
-red_bp_terms <- read.table(file = "data/output_20_red_fisher_wgcna_weight01/BP_sig.tsv",
-                           header = TRUE)
-red_bp_terms$log10    <- -log10(red_bp_terms$weight_fisher)
-red_bp_terms$category <- "Red-enriched terms"
-
-## Load enriched GO terms:
-yellow_bp_terms <- read.table(file = "data/output_20_yellow_fisher_wgcna_weight01/BP_sig.tsv",
-                           header = TRUE)
-yellow_bp_terms$log10    <- -log10(yellow_bp_terms$weight_fisher)
-yellow_bp_terms$category <- "Yellow-enriched terms"
-
-## Combine the dataframes:
-combined_df <- as.data.frame(rbind(red_bp_terms,
-                                   yellow_bp_terms))
-combined_df_unique <- subset(combined_df,
-                             !duplicated(combined_df$GO.ID))
-
-combined_df_unique$Term <- gsub(pattern = "_",
-                                replacement = " ",
-                                combined_df_unique$Term)
-
-## Create a column containing amend terms:
-combined_df_unique$amended_terms <- paste(combined_df_unique$Term,
-                                          " ",
-                                          "(",
-                                          combined_df_unique$Annotated,
-                                          ")",
-                                          sep = "")
-## Relevel category factors:
-combined_df_unique$category <- factor(combined_df_unique$category,
-                                      levels = c("Red-enriched terms",
-                                                 "Yellow-enriched terms"))
-
-## Plot:
-plot <- ggbarplot(combined_df_unique,
-                  x = "amended_terms",
-                  y = "log10",
-                  position = position_dodge(0.1),
-                  fill = "category",
-                  color = NULL,
-                  #palette = "jco",
-                  palette = c("red", "yellow"),
-                  sort.val = "desc",
-                  sort.by.groups = TRUE,
-                  ylab = "-log10(p)",
-                  xlab = "Enriched Gene Ontology term",
-                  legend.title = "Module categories",
-                  x.text.angle = 90,
-                  lab.col = "black",
-                  lab.size = 4,
-                  lab.vjust = 0.5,
-                  lab.hjust = 1,
-                  legend = "top",
-                  rotate = FALSE,
-                  ggtheme = theme_minimal())
-
-plot <- plot +
-                scale_y_continuous(expand = c(0, 0)) +
-                theme(axis.text = element_text(size = 10),
-                      axis.title.x = element_text(size = 12,
-                                                  face = "bold"),
-                      axis.title.y = element_text(size = 12,
-                                                  face = "bold"),
-                      axis.text.y = element_text(size = 10,
-                                                 face = "bold"),
-                      axis.text.x = element_text(size = 10),
-                      legend.position = "top",
-                      legend.title = element_text(size = 10,
-                                                  face = "bold")) +
-                expand_limits(y = 10) +
-                geom_hline(yintercept = 1.301,
-                           linetype = "dashed",
-                           colour = "black") +
-                geom_hline(yintercept = -1.301,
-                           linetype = "dashed",
-                           colour = "black")
-```
-
-```{r figure16, ref.label = "figure16", fig.width = 8, fig.height = 8, fig.align = 'center', echo = FALSE, message=FALSE, warning=FALSE}
-## Print to console:
-plot
-```
-
-_**Fig. 16.** Barchart displaying enriched biological process Gene Ontology terms associated genes found  in weight gene co-expression network modules ("red" and "yellow") significantly correlated with treatment. For each enriched term, the number of annotated terms in the B. terrestris predicted proteome is provided in brackets on the x-axis while the y-axis contains -log10 transformed p values assigned each enriched GO term. The horizontal dashed black line represents a -log10 transformed p value equal to 0.05._  
 
 \newpage
 **Table 1:** Sample information
