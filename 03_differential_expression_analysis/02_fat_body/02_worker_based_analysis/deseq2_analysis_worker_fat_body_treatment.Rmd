@@ -926,29 +926,9 @@ table(table(c(row.names(deseq_object_insemination_sig_down),
         row.names(dilutant_object_insemination_sig_down),
         row.names(injection_object_insemination_sig_down))))
 
-## There appears to be two genes unaccounted for:
-tmp <- as.data.frame(table(c(row.names(deseq_object_results_sig),
-        row.names(dilutant_object_results_sig),
-        row.names(injection_object_results_sig))))
-  
-tmp_up <- as.data.frame(table(c(row.names(deseq_object_insemination_sig_up),
-                  row.names(dilutant_object_insemination_sig_up),
-                  row.names(injection_object_insemination_sig_up))))
-
-tmp_down <- as.data.frame(table(c(row.names(deseq_object_insemination_sig_down),
-                  row.names(dilutant_object_insemination_sig_down),
-                  row.names(injection_object_insemination_sig_down))))
-
-tmp[, (as.character(unlist(subset(tmp,
-                                  Freq == 3)$Var1)) %in% 
-      c(as.character(unlist(subset(tmp_up,
-                                   Freq == 3)$Var1)),
-        as.character(unlist(subset(tmp_down,
-                                   Freq == 3)$Var1))))]
-
 ## For genes with reduced expression in response to treatment:
 venneu_treatment_comparison <- euler(combinations = list(
-                                                      "AI Group I" = row.names(deseq_object_results_sig),
+                                                      "AI Group 1" = row.names(deseq_object_results_sig),
                                                       "AI Group 2" = row.names(dilutant_object_results_sig),
                                                       "AI Group 3" = row.names(injection_object_results_sig)),
                                      shape = "ellipse")
@@ -960,8 +940,8 @@ treatment_comparison_plot <- plot(venneu_treatment_comparison,
                                   labels = list(fontsize = 12))
 
 pdf(file = "results/fb_worker/worker_fat_body_all_venn_diagram_degs.pdf",
-    height = 6,
-    width = 6)
+    height = 8,
+    width = 8)
 treatment_comparison_plot
 dev.off()
 
@@ -1022,10 +1002,49 @@ input <- subset(x = input,
                 sample %in% subset(samples_info,
                                     treatment_group %in% c("Control",
                                              "Insemination_group"))$short_name)
+## Subset worker info to reorder:
+samples_info_worker <- subset(x = samples_info,
+                              caste == "Worker")
+samples_info_worker_sorted <- samples_info_worker[with(samples_info_worker,
+                                                       order(samples_info_worker$stage,
+                                                             samples_info_worker$treatment_group)), ]
+input$sample <- factor(input$sample,
+                          levels = unique(samples_info_worker_sorted$short_name))
+dim(input)
+
+## Update sample names for plotting:
+for (name in 1:nrow(input)){
+  print(input$sample[[name]])
+  tmp <- as.character(unlist(input$sample[[name]]))
+  input$test[[name]]    <-            c(paste(subset(x = samples_info_worker,
+                          short_name == tmp)$treatment_group,
+                   " ",
+                   subset(x = samples_info_worker,
+                          short_name == tmp)$stage,
+                   " (",
+                   subset(x = samples_info_worker,
+                          short_name == tmp)$short_name,
+                   ")",
+                   sep = ""))
+  
+}
+
+input$test <- gsub(pattern = "Stage_II",
+                   replacement = "Stage II",
+                   input$test)
+input$test <- gsub(pattern = "Stage_IV",
+                   replacement = "Stage IV",
+                   input$test)
+input$test <- gsub(pattern = "Stage_I",
+                   replacement = "Stage I",
+                   input$test)
+input$test <- gsub(pattern = "Insemination_group",
+                   replacement = "Inseminated",
+                   input$test)
 
 ## Generate heatmap:
 heatmap_plot <- ggplot(input,
-                       aes(sample,
+                       aes(test,
                            gene_name)) +
         geom_tile(aes(fill = counts)) +
         geom_vline(xintercept = c(0.5,
@@ -1149,7 +1168,7 @@ ggarrange(
 
 ## Write to file:
 ggsave(filename = "results/fb_worker/combined_heatmap_barchart.pdf",
-       height = 6,
+       height = 8,
        width = 12,
        dpi = 600)
 ```
