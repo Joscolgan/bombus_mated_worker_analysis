@@ -68,7 +68,7 @@ for (lib in libraries) {
     } else {
         print("Installing")
         source("https://bioconductor.org/biocLite.R")
-        library(lib, character.only = TRUE )
+        library(lib, character.only = TRUE)
     }
 }
 dir.create("results")
@@ -105,9 +105,14 @@ for (filenumber in 1:length(paths$htseq_files)) {
 3. Load sample information:
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
-# Step Three: Put sample names and treatments into a samples dataframe for DESeqDataSetFromTximport
+# Step Three: Put sample names and treatments into a samples dataframe for
+# DESeqDataSetFromTximport
 
-#Differential expression analysis and data exploration was performed using [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html), which allows for identfication of genes significantly differentially expressed, as well as examination of substructure and clustering through the implementation of principal component analysis on normalised gene-level counts.
+#Differential expression analysis and data exploration was performed using
+#[DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html),
+#which allows for identfication of genes significantly differentially expressed,
+#as well as examination of substructure and clustering through the
+#implementation of principal component analysis on normalised gene-level counts.
 directory <- "./input/brain/"
 
 ## Extract sample names and put into df for tximport
@@ -135,16 +140,19 @@ samples_info <- subset(x = samples_info,
 samples_info$sample_name <- row.names(samples_info)
 samples_info$file_name   <- row.names(samples_info)
 
-samples_info       <- samples_info[, c(5,6, 1:4)]
+samples_info       <- samples_info[, c(5, 6, 1:4)]
 samples_info$stage <- factor(samples_info$stage)
 ```
 
 4. Examine gene-level outlier samples:
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
-#Step Three: Explore gene-level accounts across samples to identify potential outliers  
+#Step Three: Explore gene-level accounts across samples to identify potential
+# outliers.
 
-#The level of alignment across samples is generally quite good (>75% of all genes detected across samples (Fig. 1) with on average (mean) 87.5% of genes detected across all samples) (Figs.2-4).
+#The level of alignment across samples is generally quite good (>75% of all
+#genes detected across samples (Fig. 1) with on average (mean) 87.5% of genes
+# detected across all samples) (Figs.2-4).
 
 ## Build DESeq2 dataset:
 dds_htseq <- DESeqDataSetFromHTSeqCount(sampleTable = samples_info,
@@ -187,13 +195,13 @@ for (name in 1:ncol(counts)){
 pdf(file = "results/brain_worker/worker_upset_plot.pdf",
     height = 12,
     width = 8) # or other device
-UpSetR::upset(fromList(new_list), 
+UpSetR::upset(fromList(new_list),
                   nsets = 40,
                   main.bar.color = "blue",
                   text.scale = 1.1,
-                  nintersects = 30, 
+                  nintersects = 30,
                   order.by = "freq",
-                  mainbar.y.label = "Number of shared genes", 
+                  mainbar.y.label = "Number of shared genes",
                   sets.x.label = "Genes expressed")
 dev.off()
 ```
@@ -205,9 +213,9 @@ UpSetR::upset(fromList(new_list),
                   nsets = 40,
                   main.bar.color = "blue",
                   text.scale = 1.1,
-                  nintersects = 30, 
+                  nintersects = 30,
                   order.by = "freq",
-                  mainbar.y.label = "Number of shared genes", 
+                  mainbar.y.label = "Number of shared genes",
                   sets.x.label = "Genes expressed")
 ```
 
@@ -221,7 +229,8 @@ total_genes <- length(unique(sort(unlist(new_list))))
 
 percentages <- list()
 for (name in names(new_list)){
-  percentages[[name]] <- length(unique(sort(unlist(new_list[[name]])))) / total_genes
+  percentages[[name]] <- length(unique(sort(unlist(new_list[[name]])))) /
+                         total_genes
 }
 
 ## Examine percentage of expressed genes across:
@@ -239,10 +248,10 @@ row.names(percentages_df) <- gsub(pattern = ".ReadsPerGene.out.tab",
                                 samples_info$sample_name)
 
 percentages_df$treatment <- samples_info[match(row.names(percentages_df),
-                                               samples_info$short_name),]$treatment_group
+                                    samples_info$short_name), ]$treatment_group
 
 percentages_df$stage <- samples_info[match(row.names(percentages_df),
-                                           samples_info$short_name),]$stage
+                                           samples_info$short_name), ]$stage
 
 colnames(percentages_df)[1] <- "percentage"
 
@@ -301,7 +310,7 @@ on variance stabilising transformed (VST) counts was performed. This did highlig
 ## Create a DESeq2 object:
 deseq_object  <- DESeq(dds_htseq,
                        test = "LRT",
-                       reduced = ~stage)  
+                       reduced = ~stage)
 
 ## Transform gene-level counts using variance-stablising transformtion:
 vsd <- vst(deseq_object,
@@ -311,36 +320,36 @@ vsd <- vst(deseq_object,
 saveRDS(object = vsd,
         file = "results/brain_worker/vsd_worker_brain_treatment.rds")
 
-sampleDists <- dist(t(assay(vsd)))
+sample_dists <- dist(t(assay(vsd)))
 
-sampleDistMatrix <- as.matrix( sampleDists )
-rownames(sampleDistMatrix) <- paste( vsd$caste,
-                                     vsd$treatment_group,
-                                     vsd$stage,
-                                     sep = " - " )
-colnames(sampleDistMatrix) <- NULL
-colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+sample_dists_matrix <- as.matrix(sample_dists)
+rownames(sample_dists_matrix) <- paste(vsd$caste,
+                                    vsd$treatment_group,
+                                    vsd$stage,
+                                    sep = " - ")
+colnames(sample_dists_matrix) <- NULL
+colors <- colorRampPalette(rev(brewer.pal(9, "Blues")))(255)
 ```
 
 9. Create input files for distance matrix:
 
 ```{r figure3, ref.label = "figure3", fig.width = 8, fig.height = 6, echo = FALSE, message=FALSE}
 ## Rename rownames:
-rownames(sampleDistMatrix) <- gsub(pattern = "Insemination_group",
+rownames(sample_dists_matrix) <- gsub(pattern = "Insemination_group",
                                    replacement = "AI Group 1",
-                                   row.names(sampleDistMatrix))
+                                   row.names(sample_dists_matrix))
 
-rownames(sampleDistMatrix) <- gsub(pattern = "Insemination_with_dilutent",
+rownames(sample_dists_matrix) <- gsub(pattern = "Insemination_with_dilutent",
                                    replacement = "AI Group 2",
-                                   row.names(sampleDistMatrix))
+                                   row.names(sample_dists_matrix))
 
-rownames(sampleDistMatrix) <- gsub(pattern = "Insemination_with_nothing",
+rownames(sample_dists_matrix) <- gsub(pattern = "Insemination_with_nothing",
                                    replacement = "AI Group 3",
-                                   row.names(sampleDistMatrix))
+                                   row.names(sample_dists_matrix))
 
-pheatmap(sampleDistMatrix,
-         clustering_distance_rows = sampleDists,
-         clustering_distance_cols = sampleDists,
+pheatmap(sample_dists_matrix,
+         clustering_distance_rows = sample_dists,
+         clustering_distance_cols = sample_dists,
          col = colors)
 ```
 
@@ -357,10 +366,8 @@ To examine further similarities in terms of expression profiles across samples, 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Here set the two principal components that you want to compare:
 ## It can any combination between 1 and 22:
-#first_pc <- 2
-#second_pc <- 3
 ## Create function for plotting:
-plotPCA.san <- function(object,
+plot_pca_san <- function(object,
                         first_pc = first_pca,
                         second_pc = second_pca,
                         intgroup = "condition",
@@ -370,26 +377,24 @@ plotPCA.san <- function(object,
   select <- order(rv, decreasing = TRUE)[seq_len(min(ntop,
                                                      length(rv)))]
   pca <- prcomp(t(assay(object)[select, ]))
-  #return(pca)
   percentVar <- pca$sdev ^ 2 / sum(pca$sdev ^ 2)
   if (!all(intgroup %in% names(colData(object)))) {
     stop("the argument 'intgroup' should specify columns of colData(dds)")
   }
-  intgroup.df <- as.data.frame(colData(object)[, intgroup, drop = FALSE])
+  intgroup_df <- as.data.frame(colData(object)[, intgroup, drop = FALSE])
   group <- if (length(intgroup) > 1) {
-    factor(apply(intgroup.df, 1,
+    factor(apply(intgroup_df, 1,
                  paste,
                  collapse = " : "))
-  }
-  else {
+  } else {
     colData(object)[[intgroup]]
   }
   ## Select the PCAs and percentVar that you like instead of 1 and 2
   d <- data.frame(PC1 = pca$x[, first_pc],
                   PC2 = pca$x[, second_pc],
-                  group = group, 
-                  intgroup.df,
-                  name = colData(vsd)[,1])
+                  group = group,
+                  intgroup_df,
+                  name = colData(vsd)[, 1])
   if (returnData) {
     attr(d, "percentVar") <- percentVar[first_pc:second_pc]
     return(d)
@@ -409,8 +414,6 @@ plotPCA.san <- function(object,
             ylab(paste0("PC", second_pc, ": ",
                         round(percentVar[second_pc] * 100),
                         "% Variance")) +
-            #coord_fixed() +
-            #geom_text_repel(size = 3) +
             theme_bw() +
             theme(axis.title = element_text(size = 12,
                                             face = "bold"),
@@ -430,21 +433,21 @@ Scatterplots displaying combinations of the first four principal components (PCs
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Generate plot:
-group_plot_pc1_2 <- plotPCA.san(vsd,
+group_plot_pc1_2 <- plot_pca_san(vsd,
                           first_pc = 1,
                           second_pc = 2,
             intgroup = c("treatment_group"))
 group_plot_pc1_2 <- group_plot_pc1_2 +
   scale_fill_discrete(name = "Treatment")
 
-group_plot_pc1_3 <- plotPCA.san(vsd,
+group_plot_pc1_3 <- plot_pca_san(vsd,
                           first_pc = 1,
                           second_pc = 3,
             intgroup = c("treatment_group"))
 group_plot_pc1_3 <- group_plot_pc1_3 +
   scale_fill_discrete(name = "Treatment")
 
-group_plot_pc1_4 <- plotPCA.san(vsd,
+group_plot_pc1_4 <- plot_pca_san(vsd,
                           first_pc = 1,
                           second_pc = 4,
             intgroup = c("treatment_group"))
@@ -465,21 +468,21 @@ ggarrange(group_plot_pc1_2,
 _**Fig. 4.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (control = "red"; inseminated group = "blue)._  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
-stage_plot_pc1_2 <- plotPCA.san(vsd,
+stage_plot_pc1_2 <- plot_pca_san(vsd,
                           first_pc = 1,
                           second_pc = 2,
             intgroup = c("stage"))
 stage_plot_pc1_2 <- stage_plot_pc1_2 +
   scale_fill_discrete(name = "Stage")
 
-stage_plot_pc1_3 <- plotPCA.san(vsd,
+stage_plot_pc1_3 <- plot_pca_san(vsd,
                           first_pc = 1,
                           second_pc = 3,
             intgroup = c("stage"))
 stage_plot_pc1_3 <- stage_plot_pc1_3 +
   scale_fill_discrete(name = "Stage")
 
-stage_plot_pc1_4 <- plotPCA.san(vsd,
+stage_plot_pc1_4 <- plot_pca_san(vsd,
                           first_pc = 1,
                           second_pc = 4,
             intgroup = c("stage"))
@@ -517,44 +520,44 @@ samples_to_keep <- subset(x = pca_df,
 samples_to_keep <- row.names(samples_to_keep)
 
 dds_htseq <- dds_htseq[, samples_to_keep]
-  
+
 ## Create a DESeq2 object:
 deseq_object  <- DESeq(dds_htseq,
                        test = "LRT",
-                       reduced = ~ stage)  
+                       reduced = ~ stage)
 
 ## Transform gene-level counts using variance-stablising transformtion:
 vsd <- vst(deseq_object,
              blind = FALSE)
 
-sampleDists <- dist(t(assay(vsd)))
+sample_dists <- dist(t(assay(vsd)))
 
-sampleDistMatrix <- as.matrix(sampleDists)
-rownames(sampleDistMatrix) <- paste(vsd$treatment_group,
-                                    vsd$stage,
-                                    sep = " - " )
-colnames(sampleDistMatrix) <- NULL
-colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+sample_dists_matrix <- as.matrix(sample_dists)
+rownames(sample_dists_matrix) <- paste(vsd$treatment_group,
+                                       vsd$stage,
+                                       sep = " - ")
+colnames(sample_dists_matrix) <- NULL
+colors <- colorRampPalette(rev(brewer.pal(9, "Blues")))(255)
 
 ## Rename rownames:
-rownames(sampleDistMatrix) <- gsub(pattern = "Insemination_group",
-                                        replacement = "AI Group 1",
-                                        row.names(sampleDistMatrix))
+rownames(sample_dists_matrix) <- gsub(pattern = "Insemination_group",
+                                      replacement = "AI Group 1",
+                                      row.names(sample_dists_matrix))
 
-rownames(sampleDistMatrix) <- gsub(pattern = "Insemination_with_dilutent",
-                                        replacement = "AI Group 2",
-                                        row.names(sampleDistMatrix))
+rownames(sample_dists_matrix) <- gsub(pattern = "Insemination_with_dilutent",
+                                      replacement = "AI Group 2",
+                                      row.names(sample_dists_matrix))
 
-rownames(sampleDistMatrix) <- gsub(pattern = "Insemination_with_nothing",
-                                        replacement = "AI Group 3",
-                                        row.names(sampleDistMatrix))
+rownames(sample_dists_matrix) <- gsub(pattern = "Insemination_with_nothing",
+                                      replacement = "AI Group 3",
+                                      row.names(sample_dists_matrix))
 
 pdf(file = "results/brain_worker/brain_filtered_pheatmap.pdf",
     height = 10,
     width = 10)
-brain_heatmap_filtered <- pheatmap(sampleDistMatrix,
-                                   clustering_distance_rows = sampleDists,
-                                   clustering_distance_cols = sampleDists,
+brain_heatmap_filtered <- pheatmap(sample_dists_matrix,
+                                   clustering_distance_rows = sample_dists,
+                                   clustering_distance_cols = sample_dists,
                                    col = colors)
 dev.off()
 ```
@@ -708,7 +711,7 @@ res <- results(deseq_object)
 ```{r figure8, ref.label = "figure8", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
 ## Plot distribution of adjusted p values:
 hist(res$padj[res$baseMean > 1],
-     breaks = 0:20/20,
+     breaks = 0:20 / 20,
      col = "grey50",
      border = "white",
      main = "Histogram of adjusted p-values for differentially expressed genes",
@@ -718,7 +721,7 @@ _**Fig. 7** Histogram of adjiusted p values for differentially expressed genes b
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Extract results:
 deseq_object_results <- results(deseq_object,
-                                      name = "treatment_group_Insemination_group_vs_Control")
+                        name = "treatment_group_Insemination_group_vs_Control")
 saveRDS(object = deseq_object,
         file = "results/brain_worker/workers_deseq2_object.rds")
 
@@ -726,7 +729,7 @@ saveRDS(object = deseq_object,
 deseq_object_results$absL2FC <- abs(deseq_object_results$log2FoldChange)
 deseq_object_results_sig     <- subset(x = deseq_object_results,
                                            padj < 0.05 &
-                                         absL2FC >1)
+                                         absL2FC > 1)
 nrow(deseq_object_results_sig)
 
 ## Convert DESeq2 result object to a dataframe:
@@ -739,7 +742,8 @@ write.table(x = deseq_object_results,
             sep = "\t")
 deseq_object_results_sig <- as.data.frame(deseq_object_results_sig)
 
-## Subset genes with evidence of significantly elevated expression in inseminated individuals:
+## Subset genes with evidence of significantly elevated expression in
+## inseminated individuals:
 deseq_object_insemination_sig_up     <- subset(x = deseq_object_results,
                                              padj < 0.05 &
                                             log2FoldChange >= 1)
@@ -754,17 +758,18 @@ write.table(x = deseq_object_insemination_sig_up,
             col.names = TRUE,
             row.names = TRUE)
 
-## Subset genes with evidence of significantly reduced expression in inseminated individuals:
+## Subset genes with evidence of significantly reduced expression in inseminated
+## individuals:
 deseq_object_insemination_sig_down <- subset(x = deseq_object_results,
                                              padj < 0.05 &
                                              log2FoldChange <= -1)
 nrow(deseq_object_insemination_sig_down)
 write.table(x = deseq_object_insemination_sig_down,
-            file = "results/brain_worker/deseq_object_insemination_sig_down.txt",
-            quote = FALSE,
-            sep = "\t",
-            col.names = TRUE,
-            row.names = TRUE)
+          file = "results/brain_worker/deseq_object_insemination_sig_down.txt",
+          quote = FALSE,
+          sep = "\t",
+          col.names = TRUE,
+          row.names = TRUE)
 
 ## Plot volcano plot of:
 ## a) Log2FoldChange (gene expression) against:
@@ -817,7 +822,8 @@ nrow(dilutant_object_results_sig)
 dilutant_object_results <- as.data.frame(dilutant_object_results)
 dilutant_object_results_sig <- as.data.frame(dilutant_object_results_sig)
 
-## Subset genes with evidence of significantly elevated expression in inseminated individuals:
+## Subset genes with evidence of significantly elevated expression in
+## inseminated individuals:
 dilutant_object_insemination_sig_up     <- subset(x = dilutant_object_results,
                                              padj < 0.05 &
                                             log2FoldChange >= 1)
@@ -941,9 +947,9 @@ ggarrange(volcano_plot,
 
 ## Examine also with a Euler plot:
 venneu_treatment_comparison <- euler(combinations = list(
-                                                      "AI Group I DEGs" = row.names(deseq_object_results_sig),
-                                                      "AI Group 2 DEGs" = row.names(dilutant_object_results_sig),
-                                                      "AI Group 3 DEGs" = row.names(injection_object_results_sig)),
+                                                      "AI Group 1" = row.names(deseq_object_results_sig),
+                                                      "AI Group 2" = row.names(dilutant_object_results_sig),
+                                                      "AI Group 3" = row.names(injection_object_results_sig)),
                                      shape = "ellipse")
 ## Generate plot:
 treatment_comparison_plot <- plot(venneu_treatment_comparison,
@@ -951,8 +957,8 @@ treatment_comparison_plot <- plot(venneu_treatment_comparison,
                                edges = TRUE,
                                labels = list(fontsize = 12))
 pdf(file = "results/brain_worker/worker_brain_all_venn_diagram_degs.pdf",
-    height = 6,
-    width = 6)
+    height = 8,
+    width = 8)
 treatment_comparison_plot
 dev.off()
 insemination_unique <- subset(x = deseq_object_results_sig,
@@ -1015,10 +1021,48 @@ input <- subset(x = input,
                 sample %in% subset(samples_info,
                                     treatment_group %in% c("Control",
                                              "Insemination_group"))$short_name)
+## Subset worker info to reorder:
+samples_info_worker <- subset(x = samples_info,
+                              caste == "Worker")
+samples_info_worker_sorted <- samples_info_worker[with(samples_info_worker,
+                                                       order(samples_info_worker$stage,
+                                                             samples_info_worker$treatment_group)), ]
+input$sample <- factor(input$sample,
+                          levels = unique(samples_info_worker_sorted$short_name))
+dim(input)
+## Update sample names for plotting:
+for (name in 1:nrow(input)){
+  print(input$sample[[name]])
+  tmp <- as.character(unlist(input$sample[[name]]))
+  input$test[[name]]    <-            c(paste(subset(x = samples_info_worker,
+                          short_name == tmp)$treatment_group,
+                   " ",
+                   subset(x = samples_info_worker,
+                          short_name == tmp)$stage,
+                   " (",
+                   subset(x = samples_info_worker,
+                          short_name == tmp)$short_name,
+                   ")",
+                   sep = ""))
+  
+}
+
+input$test <- gsub(pattern = "Stage_II",
+                   replacement = "Stage II",
+                   input$test)
+input$test <- gsub(pattern = "Stage_IV",
+                   replacement = "Stage IV",
+                   input$test)
+input$test <- gsub(pattern = "Stage_I",
+                   replacement = "Stage I",
+                   input$test)
+input$test <- gsub(pattern = "Insemination_group",
+                   replacement = "Inseminated",
+                   input$test)
 
 ## Generate heatmap:
 heatmap_plot <- ggplot(input,
-                       aes(sample,
+                       aes(test,
                            gene_name)) +
         geom_tile(aes(fill = counts)) +
         geom_vline(xintercept = c(0.5,
@@ -1185,4 +1229,10 @@ nrow(deseq_object_results_sig)
 ## Convert DESeq2 result object to a dataframe:
 deseq_object_results <- as.data.frame(deseq_object_results)
 deseq_object_results_sig <- as.data.frame(deseq_object_results_sig)
+```
+
+Run lintr:
+
+```{r, message = FALSE}
+lintr::lint(file = "deseq2_analysis_worker_brain_treatment.Rmd")
 ```
