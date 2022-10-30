@@ -50,11 +50,11 @@ input <- "data/output_go_term_database.tmp"
 gene_to_go_mapping_file <- input
 
 ## file of significant genes (2 column file: i.e. gene id and pvalue) file:
-gene_list <- scan(file = "input/worker_ovary_unique_inseminated.txt",
+gene_list <- scan(file = "input/ovary_worker/inseminated_worker_elevated_gene_list.txt",
                   as.character())
 
 ## Define node size:
-node_size <- 20
+node_size <- 50
 ## Database:
 database <- "bterrestris_dmel"
 ## Output directory:
@@ -62,7 +62,7 @@ output_directory <- paste("results/",
                           database,
                           "/output_",
                           node_size,
-                          "_worker_ovary_fisher_weight01",
+                          "_inseminated_worker_ovary_fisher_weight01",
                           sep = "")
 if (file.exists(output_directory)) {
   stop("The output directory:", output_directory, ", already exists",
