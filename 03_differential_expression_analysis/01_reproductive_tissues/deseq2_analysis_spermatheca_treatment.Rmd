@@ -271,9 +271,9 @@ ggarrange(density_caste_plot,
           ncol = 2,
           legend = "none",
           align = "hv",
-          labels = c("A",
-                     "B",
-                     "C"))
+          labels = c("a",
+                     "b",
+                     "c"))
 
 samples_to_keep <- colnames(counts(dds_htseq)) != "B37.ReadsPerGene.out.tab"
 dds_htseq <- dds_htseq[, samples_to_keep]
@@ -328,7 +328,7 @@ saveRDS(object = vsd,
 
 sampleDists <- dist(t(assay(vsd)))
 
-sampleDistMatrix <- as.matrix( sampleDists )
+sampleDistMatrix <- as.matrix(sampleDists)
 rownames(sampleDistMatrix) <- paste( vsd$caste,
                                      vsd$treatment_group,
                                      vsd$stage,
@@ -506,7 +506,6 @@ combined_group_plot <- ggarrange(group_plot_pc1_2,
 ```
 
 _**Fig. 5.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (control = "red"; inseminated group = "blue)._  
-
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 stage_plot_pc1_2 <- plotPCA.san(vsd,
                           first_pc = 1,
@@ -557,9 +556,9 @@ pca_combined <- ggarrange(combined_caste_plot,
                           combined_stage_plot,
           nrow = 3,
           ncol = 1,
-          labels = c("A",
-                     "B",
-                     "C"),
+          labels = c("a",
+                     "b",
+                     "c"),
           align = "hv")
 
 ## Print to console:
@@ -798,7 +797,8 @@ run_caste_deseq(specific_caste = "Worker")
 worker_results_df <- as.data.frame(object_results)
 worker_results_df$absLog2FC <- abs(worker_results_df$log2FoldChange)
 nrow(subset(x = worker_results_df,
-            padj < 0.05))
+            padj < 0.05 &
+            absLog2FC >= 1))
 genes_of_interest <- row.names(subset(x = worker_results_df,
             padj < 0.05 &
             absLog2FC >= 1))
@@ -858,7 +858,6 @@ write.table(x = worker_results_df,
 saveRDS(object = worker_results_df,
         file = "results/worker_specific_analysis/deseq_object_results_worker_treatment.rds")
 
-## AN ALTERNATIVE APPROACH:
 ## Normalise counts:
 normalised_counts <- t(scale(t(counts(dds_object)),
                              center = TRUE,
@@ -877,12 +876,8 @@ dd <- hclust(dist(as.matrix(normalised_counts_unique_degs[, 1:ncol(normalised_co
 ## Reorder:
 normalised_counts_ordered <- as.data.frame(normalised_counts_unique_degs[rev(dd$order), ])
 normalised_counts_ordered$locus <- row.names(normalised_counts_ordered)
+
 ## Create a name for plotting:
-#colnames(normalised_counts_ordered) <- c(paste(samples_info_worker$treatment_group,
-#                                               "-",
-#                                               samples_info_worker$stage,
-#                                               sep = ""),
-#                                         "locus")## Transform dataframe:
 normalised_counts_ordered_melt <- melt(normalised_counts_ordered)
 ## Update column names:
 colnames(normalised_counts_ordered_melt) <- c("gene_name",
@@ -980,10 +975,8 @@ run_caste_deseq(specific_caste = "Queen")
 queen_results_df <- as.data.frame(object_results)
 queen_results_df$absLog2FC <- abs(queen_results_df$log2FoldChange)
 nrow(subset(x = queen_results_df,
-            padj < 0.05))
-nrow(subset(x = queen_results_df,
             padj < 0.05 &
-            absLog2FC >= 1))
+              absLog2FC >= 1))
 nrow(subset(x = queen_results_df,
             padj < 0.05 &
             log2FoldChange >= 1))
@@ -1011,14 +1004,14 @@ volcano_queen <- plot_volcano(input = queen_results_df)
 dir.create(path = "results/queen_specific_analysis",
            recursive = TRUE)
 
-write.table(x = worker_results_df,
+write.table(x = queen_results_df,
             file = "results/queen_specific_analysis/deseq_object_results_queen_treatment.txt",
             quote = FALSE,
             row.names = TRUE,
             col.names = TRUE,
             sep = "\t")
 
-saveRDS(object = worker_results_df,
+saveRDS(object = queen_results_df,
         file = "results/queen_specific_analysis/deseq_object_results_queen_treatment.rds")
 ```
 
@@ -1029,8 +1022,8 @@ volcano_castes <- ggarrange(volcano_worker,
           nrow = 2,
           ncol = 1,
           align = "hv",
-          labels = c("A",
-                     "B"),
+          labels = c("a",
+                     "b"),
           legend = "none")
 ```
 
@@ -1263,9 +1256,9 @@ pca_plots <- ggarrange(caste_plot_pc1_2,
                        stage_plot_pc1_2,
                        nrow = 1,
                        ncol = 3,
-                       labels = c("A",
-                                  "B",
-                                  "C"),
+                       labels = c("a",
+                                  "b",
+                                  "c"),
                        align = "hv")
 
 rest_plot <- ggarrange(
@@ -1275,10 +1268,10 @@ rest_plot <- ggarrange(
           scatterplot,
           nrow = 2,
           ncol = 2,
-          labels = c("D",
-                     "E",
-                     "F",
-                     "G"),
+          labels = c("d",
+                     "e",
+                     "f",
+                     "g"),
           common.legend = FALSE,
           align = "hv") 
 
