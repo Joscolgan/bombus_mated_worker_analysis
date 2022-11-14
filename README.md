@@ -1,6 +1,8 @@
 ## Context & Citation:   
-Scripts related to transcriptomic analysis of the study:  
-__The reproductive function of the worker during morphogenesis in eusocial bumblebee – mating and laying fertilized egg__. 
+This repository contains scripts related to the transcriptomic analysis of tissues (reproductive tissues, fat bodies, brains, and ovaries) collected from worker and queen bumblebees. Findings of the analysis are reported in the following manuscript:   
+
+M Zhuang, TJ Colgan, Y Guo, Z Zhang, F Liu, Z Xia, X Dai, Z Zhang, Y Li, L Wang, J Xu, Y Guo, Y Qu, J Yao, H Yang, F Yang, J Guo, MJF Brown and J Li. 
+*Unexpected worker mating and colony-founding in a superorganism*  
 
 The following directory contains scripts for:  
 - The quality assessment of RNA-seq fastq sequences.  
