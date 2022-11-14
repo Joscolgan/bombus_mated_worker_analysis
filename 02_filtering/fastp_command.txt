@@ -1,0 +1,16 @@
+fastp -i ${F} -I ${R} -o 02clean_data/${SAMPLE}_1.fastq -O 02clean_data/${SAMPLE}_2.fastq \
+        -w 12 --html 02clean_data/${SAMPLE}.html --json 02clean_data/${SAMPLE}.json
+  -f 0
+  -t 0
+  -F 0
+  -T 0
+  --poly_g_min_len 10
+  --cut_window_size 4
+  --cut_mean_quality Q20
+  -q 15
+  -u 40
+  -n 5
+  -l 15
+  -P 20
+  -w 3
+  -d 4
