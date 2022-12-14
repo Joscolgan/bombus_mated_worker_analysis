@@ -1,3 +1,6 @@
+#!/bin/sh
+
+
 mkdir results
 
 fastqc -t 10 input/*gz -o results
