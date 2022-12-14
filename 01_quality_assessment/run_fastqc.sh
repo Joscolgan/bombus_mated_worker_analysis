@@ -1,5 +1,4 @@
 #!/bin/sh
-
 ########################################################################
 ##
 ## Author: Joe Colgan (joscolgan)                 Name: run_fastqc.sh
