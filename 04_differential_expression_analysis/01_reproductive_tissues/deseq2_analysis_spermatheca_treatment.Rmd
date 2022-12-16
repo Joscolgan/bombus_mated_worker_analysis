@@ -497,20 +497,20 @@ group_plot_pc1_4 <- group_plot_pc1_4 +
 
 ```{r figure5, ref.label = "figure5", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
 combined_group_plot <- ggarrange(group_plot_pc1_2,
-          group_plot_pc1_3,
-          group_plot_pc1_4,
-          nrow = 1,
-          ncol = 3,
-          align = "hv",
-          common.legend = TRUE)
+                                 group_plot_pc1_3,
+                                 group_plot_pc1_4,
+                                 nrow = 1,
+                                 ncol = 3,
+                                 align = "hv",
+                                 common.legend = TRUE)
 ```
 
 _**Fig. 5.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (control = "red"; inseminated group = "blue)._  
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 stage_plot_pc1_2 <- plotPCA.san(vsd,
-                          first_pc = 1,
-                          second_pc = 2,
-            intgroup = c("stage"))
+                                first_pc = 1,
+                                second_pc = 2,
+                                intgroup = c("stage"))
 stage_plot_pc1_2 <- stage_plot_pc1_2 +
   scale_fill_manual(name = "Age",
                     values = c("black",
@@ -518,9 +518,9 @@ stage_plot_pc1_2 <- stage_plot_pc1_2 +
                                "white"))
 
 stage_plot_pc1_3 <- plotPCA.san(vsd,
-                          first_pc = 1,
-                          second_pc = 3,
-            intgroup = c("stage"))
+                                first_pc = 1,
+                                second_pc = 3,
+                                intgroup = c("stage"))
 stage_plot_pc1_3 <- stage_plot_pc1_3 +
   scale_fill_manual(name = "Age",
                     values = c("black",
@@ -528,8 +528,8 @@ stage_plot_pc1_3 <- stage_plot_pc1_3 +
                                "white"))
 
 stage_plot_pc1_4 <- plotPCA.san(vsd,
-                          first_pc = 1,
-                          second_pc = 4,
+                                first_pc = 1,
+                                second_pc = 4,
             intgroup = c("stage"))
 stage_plot_pc1_4 <- stage_plot_pc1_4 +
   scale_fill_manual(name = "Age",
@@ -540,12 +540,12 @@ stage_plot_pc1_4 <- stage_plot_pc1_4 +
 
 ```{r figure7, ref.label = "figure7", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
 combined_stage_plot <- ggarrange(stage_plot_pc1_2,
-          stage_plot_pc1_3,
-          stage_plot_pc1_4,
-          nrow = 1,
-          ncol = 3,
-          align = "hv",
-          common.legend = TRUE)
+                                 stage_plot_pc1_3,
+                                 stage_plot_pc1_4,
+                                 nrow = 1,
+                                 ncol = 3,
+                                 align = "hv",
+                                 common.legend = TRUE)
 ```
 _**Fig. 6.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (two days = "red"; four days = "green"; eight days = "blue")_    
 
@@ -554,12 +554,12 @@ _**Fig. 6.** Principal component analysis with first two principal components sh
 pca_combined <- ggarrange(combined_caste_plot,
                           combined_group_plot,
                           combined_stage_plot,
-          nrow = 3,
-          ncol = 1,
-          labels = c("a",
-                     "b",
-                     "c"),
-          align = "hv")
+                          nrow = 3,
+                          ncol = 1,
+                          labels = c("a",
+                                     "b",
+                                     "c"),
+                          align = "hv")
 
 ## Print to console:
 (pca_combined)
@@ -635,7 +635,7 @@ deseq_object_results <- results(deseq_object,
 deseq_object_results$absL2FC <- abs(deseq_object_results$log2FoldChange)
 deseq_object_results_sig     <- subset(x = deseq_object_results,
                                            padj < 0.05 &
-                                           absL2FC > 1)
+                                           absL2FC >= 1)
 nrow(deseq_object_results_sig)
 
 ## Convert DESeq2 result object to a dataframe:
