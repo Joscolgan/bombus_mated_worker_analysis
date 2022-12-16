@@ -764,9 +764,9 @@ pca_combined <- ggarrange(combined_caste_plot,
                           combined_stage_plot,
           nrow = 3,
           ncol = 1,
-          labels = c("A",
-                     "B",
-                     "C"),
+          labels = c("a",
+                     "b",
+                     "c"),
           align = "hv")
 
 ## Print to console:
