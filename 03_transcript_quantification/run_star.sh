@@ -8,7 +8,7 @@
 ## alignment against a database of indexed transcripts using the 
 ## RNA-Seq aligner, STAR. The output sam file is converted in bam file
 ## format and sorted by read coordinates.
-## The final output is a bam file
+## The final output is a bam file.  
 ##
 ########################################################################
 
