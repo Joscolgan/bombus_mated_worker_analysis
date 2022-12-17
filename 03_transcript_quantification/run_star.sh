@@ -36,9 +36,6 @@ STAR  \
 --outBAMsortingThreadN 2 \
 --quantMode GeneCounts \
 --outFileNamePrefix ./results/"$output". 
-## Convert sam to bam and sort by read name:
-#samtools view -bS ./results/"$output".Aligned.out.sam | samtools sort -n -o results/"$output".bam;
-#rm ./results/"$output".Aligned.out.sam
 
 ## Print to console:
 echo "Complete"
