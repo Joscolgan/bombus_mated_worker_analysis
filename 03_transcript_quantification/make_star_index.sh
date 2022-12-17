@@ -11,6 +11,7 @@
 ## 2) A corresponding GFF for the reference genome assembly.  
 ## 3) The overhang of the input sequences.
 ## The script outputs a folder containing genome index.
+##
 ########################################################################
 
 ## Take inputs from the command line:
