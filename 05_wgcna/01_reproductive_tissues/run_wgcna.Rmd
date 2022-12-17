@@ -122,7 +122,7 @@ row.names(samples_information) <- samples_information$V1
 samples_information$V1 <- NULL
 ## Update column names:
 colnames(samples_information) <- c("caste",
-                                   "stage",
+                                   "age",
                                    "treatment")
 ## Remove outlier:
 samples_information <- subset(samples_information,
