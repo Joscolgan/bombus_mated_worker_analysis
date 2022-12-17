@@ -1,6 +1,18 @@
+---
+author: "Joe Colgan"
+title: "**Transcriptomic analysis of control and inseminated spermatheca of _Bombus terrestris_ workers and queens**"
+output:
+  pdf_document: default
+  html_document: default
+fig_width: 4
+fig_height: 4
+fontsize: 20pt
+---
 
+## Introduction
+The purpose of the present analysis is to examine similarities and differences in terms of gene expression associated with the spermatheca of _Bombus terrestris_ workers and queens. For the present study, control (unmated) and artificially inseminated bumblebees were collected and spermatheca removed at three different time points (two, four and eight days post-treatment).
 
-Load libraries:
+1. Load libraries:
 
 ```{r, message = FALSE}
 #install.packages("BiocManager") 
@@ -9,9 +21,10 @@ Load libraries:
 library(WGCNA)
 library(DESeq2)
 library(igraph)
+library(ggcorrplot)
 ```
 
-Load input data:
+2. Load input data:
 
 The expression data is contained in the file LiverFemale3600.csv that comes with this tutorial. After starting an R session, we load the requisite packages and the data, after appropriately setting the working directory:
 
@@ -24,14 +37,14 @@ data <- readRDS(file = "input/vsd_spermatheca_treatment.rds")
 data_counts <- assay(data)
 ```
 
-In addition to expression data, the data files contain extra information about the surveyed probes we do not need. One can inspect larger data frames such as femData by invoking R data editor via fix(femData). The expression data set contains 135 samples. Note that each row corresponds to a gene and column to a sample or auxiliary information. We now remove the auxiliary data and transpose the expression data for further analysis.
+3. In addition to expression data, the data files contain extra information about the surveyed probes we do not need. One can inspect larger data frames such as femData by invoking R data editor via fix(femData). The expression data set contains 135 samples. Note that each row corresponds to a gene and column to a sample or auxiliary information. We now remove the auxiliary data and transpose the expression data for further analysis.
 
 ```{r, message=FALSE}
 ## We need a transposed dataframe consisting of gene per column and sample per row:
 transposed_data <- t(data_counts)
 ```
 
-1.b Checking data for excessive missing values and identification of outlier microarray samples
+4. Checking data for excessive missing values and identification of outlier microarray samples
 
 We first check for genes and samples with too many missing values:
 
@@ -57,7 +70,7 @@ if (!transposed_gsg$allOK)
 }
 ```
 
-Next we cluster the samples (in contrast to clustering genes that will come later) to see if there are any obvious outliers.
+5. Next we cluster the samples (in contrast to clustering genes that will come later) to see if there are any obvious outliers.
 
 ```{r, message = FALSE}
 ## Run for experimental samples:
@@ -96,7 +109,7 @@ nSamples = nrow(transposed_data_filt)
 
 The variable datExpr now contains the expression data ready for network analysis.  
 
-1.c Loading clinical trait data
+6 Loading trait data
 We now read in the trait data and match the samples for which they were measured to the expression samples.
 
 ```{r, message = FALSE}
@@ -148,8 +161,8 @@ saveRDS(object = exp_traitColors, file = "results/exp_traitColors_spermatheca.rd
 
 In the plot, shown in Fig. 2, white means a low value, red a high value, and grey a missing entry. The last step is to save the relevant expression and trait data for use in the next steps of the tutorial. 
 
-2.b Step-by-step network construction and module detection
-2.b.1 Choosing the soft-thresholding power: analysis of network topology
+7 Step-by-step network construction and module detection
+7.1 Choosing the soft-thresholding power: analysis of network topology
 Constructing a weighted gene network entails the choice of the soft thresholding power β to which co-expression similarity is raised to calculate adjacency [1]. The authors of [1] have proposed to choose the soft thresholding power based on the criterion of approximate scale-free topology. We refer the reader to that work for more details; here we illustrate the use of the function pickSoftThreshold that performs the analysis of network topology and aids the user in choosing a proper soft-thresholding power. The user chooses a set of candidate powers (the function provides suitable default values), and the function returns a set of network indices that should be inspected, for example as follows:  
 
 ```{r, message = FALSE}
@@ -195,7 +208,7 @@ text(exp_sft$fitIndices[,1],
      col = "red")
 ```
 
-2.b.2 Co-expression similarity and adjacency
+7.2 Co-expression similarity and adjacency
 We now calculate the adjacencies, using the soft thresholding power 6:
 
 ```{r, message = FALSE}
@@ -205,7 +218,7 @@ exp_adjacency = adjacency(transposed_data_filt,
                           power = softPower);
 ```
 
-2.b.3 Topological Overlap Matrix (TOM)
+7.3 Topological Overlap Matrix (TOM)
 To minimize effects of noise and spurious associations, we transform the adjacency into Topological Overlap Matrix, and calculate the corresponding dissimilarity:
 
 ```{r, message = FALSE}
@@ -215,7 +228,7 @@ exp_TOM = TOMsimilarity(exp_adjacency);
 diss_exp_TOM = 1-exp_TOM
 ```
 
-2.b.4 Clustering using TOM
+7.4 Clustering using TOM
 We now use hierarchical clustering to produce a hierarchical clustering tree (dendrogram) of genes. Note that we use the function hclust that provides a much faster hierarchical clustering routine than the standard hclust function.  
 
 ```{r, message = FALSE}
@@ -266,7 +279,7 @@ plotDendroAndColors(exp_geneTree,
                     main = "Gene dendrogram and module colors")
 ```
 
-2.b.5 Merging of modules whose expression profiles are very similar
+7.5 Merging of modules whose expression profiles are very similar
 The Dynamic Tree Cut may identify modules whose expression profiles are very similar. It may be prudent to merge such modules since their genes are highly co-expressed. To quantify co-expression similarity of entire modules, we calculate their eigengenes and cluster them on their correlation  
 
 ```{r, message = FALSE}
@@ -340,8 +353,9 @@ save(exp_MEs,
      file = "results/spermatheca-02-networkConstruction-stepByStep.RData")
 ```
 
-3 Relating modules to external clinical traits 3.a Quantifying module–trait associations
-In this analysis we would like to identify modules that are significantly associated with the measured clinical traits. Since we already have a summary profile (eigengene) for each module, we simply correlate eigengenes with external traits and look for the most significant associations:
+8. Relating modules to external traits
+8.1 Quantifying module–trait associations
+In this analysis we would like to identify modules that are significantly associated with the measured  traits. Since we already have a summary profile (eigengene) for each module, we simply correlate eigengenes with external traits and look for the most significant associations:
 
 ```{r, message = FALSE}
 # Define numbers of genes and samples
@@ -396,8 +410,8 @@ save(exp_MEs,
 The resulting color-coded table is shown in Fig. 1.
 The analysis identifies the several significant module–trait associations. We will concentrate on weight as the trait of interest.  
 
-3.b Gene relationship to trait and important modules: Gene Significance and Module Membership
-We quantify associations of individual genes with our trait of interest (weight) by defining Gene Significance GS as (the absolute value of) the correlation between the gene and the trait. For each module, we also define a quantitative measure of module membership MM as the correlation of the module eigengene and the gene expression profile. This allows us to quantify the similarity of all genes on the array to every module.
+8.2 Gene relationship to trait and important modules: Gene Significance and Module Membership
+We quantify associations of individual genes with our trait of interest (treatment) by defining Gene Significance GS as (the absolute value of) the correlation between the gene and the trait. For each module, we also define a quantitative measure of module membership MM as the correlation of the module eigengene and the gene expression profile. This allows us to quantify the similarity of all genes on the array to every module.
 
 ```{r, message = FALSE}
 # Define variable treatment containing the treatment column of samples information
@@ -430,8 +444,8 @@ names(exp_GSPvalue) = paste("p.GS.",
                             sep = "")
 ```
 
-3.c Intramodular analysis: identifying genes with high GS and MM
-Using the GS and MM measures, we can identify genes that have a high significance for weight as well as high module membership in interesting modules. As an example, we look at the brown module that has the highest association with weight. We plot a scatterplot of Gene Significance vs. Module Membership in the brown module:  
+8.3 Intramodular analysis: identifying genes with high GS and MM
+Using the GS and MM measures, we can identify genes that have a high significance for treatment as well as high module membership in interesting modules. As an example, we look at the brown module that has the highest association with weight. We plot a scatterplot of Gene Significance vs. Module Membership in the brown module:  
 
 ```{r, message = FALSE}
 exp_module = "yellow"
@@ -526,7 +540,132 @@ length(black_module_genes)
 write(x = black_module_genes,
       file = "results/black_module_genes.txt")
 ```
+Read back in enriched Gene Ontology terms for:
+- Genes belonging to the red module
+- Genes belonging to the yellow module
 
+```{r, message = FALSE}
+## Read in Gene Ontology terms enriched for resident genes:
+go_term_dir <- "../2022_gene_ontology_analysis/run_reps/results/bterrestris_dmel"
+## Load ALH output:
+red_bp_terms <- read.table(file = paste(go_term_dir,
+                                        "/output_20_red_module_fisher_weight01",
+                                        "/BP_sig.tmp",
+                                              sep = ""),
+                           header = TRUE)
+red_bp_terms$log10 <- -log10(red_bp_terms$weight_fisher)
+red_bp_terms$category <- "Red module genes"
+
+## Subset by significance:
+yellow_bp_terms <- read.table(file = paste(go_term_dir,
+                                          "/output_20_yellow_module_fisher_weight01",
+                                          "/BP_sig.tmp",
+                                              sep = ""),
+                           header = TRUE)
+yellow_bp_terms$log10 <- -log10(yellow_bp_terms$weight_fisher)
+yellow_bp_terms$category <- "Yellow module genes"
+
+## Generate plot:
+combined_df <- as.data.frame(rbind(red_bp_terms,
+                                   yellow_bp_terms))
+combined_df_unique <- subset(combined_df,
+                             !duplicated(combined_df$GO.ID))
+
+## Reannotate:
+combined_df_unique$Term <- gsub(pattern = "_",
+                                replacement = " ",
+                                combined_df_unique$Term)
+
+## Create a column containing amend terms:
+combined_df_unique$amended_terms <- paste(combined_df_unique$Term,
+                                          " ",
+                                          "(",
+                                          combined_df_unique$Annotated,
+                                          ")",
+                                          sep = "")
+
+## Relevel category factors:
+combined_df_unique$category <- factor(combined_df_unique$category,
+                                      levels = c("Red module genes",
+                                                 "Yellow module genes"))
+
+## Generate plot:
+plot <- ggbarplot(combined_df_unique,
+                  x = "amended_terms",
+                  y = "log10",
+                  position = position_dodge(0.1),
+                  fill = "category",
+                  color = NULL,
+                  palette = "jco",
+                  sort.val = "desc",
+                  sort.by.groups = TRUE,
+                  ylab = "-log10(p)",
+                  xlab = "Enriched Gene Ontology term",
+                  legend.title = "Gene categories",
+                  x.text.angle = 90,
+                  lab.col = "black",
+                  lab.size = 4,
+                  lab.vjust = 0.5,
+                  lab.hjust = 1,
+                  legend = "top",
+                  rotate = FALSE,
+                  ggtheme = theme_minimal())
+
+## Make font bigger and bold:
+plot <- plot +
+  scale_fill_manual(values = c("red",
+                               "gold")) +
+                scale_y_continuous(expand = c(0, 0)) +
+                theme(axis.text = element_text(size = 10),
+                      axis.title.x = element_text(size = 12,
+                                                  face = "bold"),
+                      axis.title.y = element_text(size = 12,
+                                                  face = "bold"),
+                      axis.text.y = element_text(size = 10,
+                                                 face = "bold"),
+                      axis.text.x = element_text(size = 10),
+                      legend.position = "top",
+                      legend.title = element_text(size = 10,
+                                                  face = "bold")) +
+                expand_limits(y = 10) +
+                geom_hline(yintercept = 1.301,
+                           linetype = "dashed",
+                           colour = "black") +
+                geom_hline(yintercept = -1.301,
+                           linetype = "dashed",
+                           colour = "black")
+
+## Generate a correlation plot using ggcorrplot:
+correlation_plot <- ggcorrplot(exp_moduleTraitCor,
+           lab = TRUE) +
+  theme(axis.text = element_text(size = 10,
+                                  face = "bold"),
+        axis.text.x = element_text(size = 10,
+                                   colour = c("turquoise",
+                                              "pink",
+                                              "black",
+                                              "red",
+                                              "gold",
+                                              "darkgrey"),
+                                  face = "bold"),
+        legend.title = element_text(size = 10,
+                                  face = "bold"))
+
+## Generate a combined plot:
+ggarrange(correlation_plot,
+          plot,
+          ncol = 1,
+          nrow = 2,
+          labels = c("a",
+                     "b"),
+          heights = c(1,1.5))
+
+## Save image:
+ggsave(file = "results/combined_cor_go_term_plot.pdf",
+       height = 12,
+       width = 8,
+       dpi = 600)
+```
 
 5 Visualization of networks within R 5.a Visualizing the gene network
 One way to visualize a weighted network is to plot its heatmap, Fig. 1. Each row and column of the heatmap correspond to a single gene. The heatmap can depict adjacencies or topological overlaps, with light colors denoting low adjacency (overlap) and darker colors higher adjacency (overlap). In addition, the gene dendrograms and module colors are plotted along the top and left side of the heatmap. The package provides a convenient function to create such network plots; Fig. 1 was created using the following code. This code can be executed only if the network was calculated using a single-block approach (that is, using the 1-step automatic or the step-by-step tutorials). If the networks were calculated using the block-wise approach, the user will need to modify this code to perform the visualization in each block separately. The modification is simple and we leave it as an exercise for the interested reader.
