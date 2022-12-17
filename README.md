@@ -11,4 +11,3 @@ The following directory contains scripts for:
 - Principal component analysis. 
 - Gene Ontology term enrichment analysis.  
 - Weighted gene co-expression network analysis.  
-- Visualisation.  
