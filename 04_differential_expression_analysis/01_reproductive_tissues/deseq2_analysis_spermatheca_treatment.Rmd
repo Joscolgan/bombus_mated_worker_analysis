@@ -1,6 +1,6 @@
 ---
 author: "Joe Colgan"
-title: "**Transcriptomic analysis of control and inseminated spermatheca of _Bombus terrestris_ workers and queens**"
+title: "**Transcriptomic analysis of control and inseminated spermathecae, vagina, and median oviduct of _Bombus terrestris_ workers and queens**"
 output:
   pdf_document: default
   html_document: default
@@ -10,7 +10,7 @@ fontsize: 20pt
 ---
 
 ## Introduction
-The purpose of the present analysis is to examine similarities and differences in terms of gene expression associated with the spermatheca of _Bombus terrestris_ workers and queens. For the present study, control (unmated) and artificially inseminated bumblebees were collected and spermatheca removed at three different time points (two, four and eight days post-treatment).
+The purpose of the present analysis is to examine similarities and differences in terms of gene expression associated with the spermatheca, vagina, and median oviduct of _Bombus terrestris_ workers and queens. For the present study, control (unmated) and artificially inseminated bumblebees were collected and spermatheca removed at three different time points (two, four and eight days post-treatment).
 
 ## Methods  
 Cleaned sequences were quality assessed using FastQC ensuring high base quality and 
