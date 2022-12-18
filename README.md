@@ -20,4 +20,6 @@ The following directory contains scripts for:
 
 Scripts here, especially those for transcript quantification, differential expression, and Gene Ontology enrichment analysis used modifications of scripts published along with the following manuscripts:
 - [Colgan et al. (2019), _Molecular ecology_](https://onlinelibrary.wiley.com/doi/full/10.1111/mec.15047). 
-- [Wynne et al. (2021), _Ecology&Evolution_](https://onlinelibrary.wiley.com/doi/full/10.1002/ece3.7664).  
+--> [Github repository](https://github.com/wurmlab/Bter_neonicotinoid_exposure_experiment). 
+- [Wynne et al. (2021), _Ecology & Evolution_](https://onlinelibrary.wiley.com/doi/full/10.1002/ece3.7664).  
+--> [Github repository](https://github.com/Joscolgan/salmo_smolt_study).
