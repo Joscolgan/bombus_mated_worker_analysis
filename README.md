@@ -5,11 +5,15 @@ M Zhuang, TJ Colgan, Y Guo, Z Zhang, F Liu, Z Xia, X Dai, Z Zhang, Y Li, L Wang,
 <b>Unexpected worker mating and colony-founding in a superorganism.</b>  
 
 The following directory contains scripts for:  
-- The quality assessment of RNA-seq fastq sequences.  
+- The quality assessment of RNA-seq FASTQ sequences.  
+--> Performed using [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/).   
 - The alignment of filtered reads.  
-- Differential expression analysis.    
-- Principal component analysis. 
+--> Performed using [STAR](https://github.com/alexdobin/STAR).  
+- Data exploration, including differential expression analysis.    
+--> Performed using [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html).  
 - Gene Ontology term enrichment analysis.  
+--> Performed using [topGO](https://bioconductor.org/packages/release/bioc/html/topGO.html).  
 ---> Kolmogorov-Smirnov test.  
 ---> Fisher's Exact test. 
-- Weighted gene co-expression network analysis.  
+- Weighted gene co-expression network analysis.
+--> Performed using [WGCNA](https://cran.r-project.org/web/packages/WGCNA/index.html).  
