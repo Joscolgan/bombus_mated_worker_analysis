@@ -1,6 +1,6 @@
 ---
 author: "Joe Colgan"
-title: "**Transcriptomic analysis of control and inseminated spermatheca of _Bombus terrestris_ workers and queens**"
+title: "**Weight gene co-expression analysis of control and inseminated _Bombus terrestris_ workers and queens**"
 output:
   pdf_document: default
   html_document: default
@@ -10,14 +10,11 @@ fontsize: 20pt
 ---
 
 ## Introduction
-The purpose of the present analysis is to examine similarities and differences in terms of gene expression associated with the spermatheca of _Bombus terrestris_ workers and queens. For the present study, control (unmated) and artificially inseminated bumblebees were collected and spermatheca removed at three different time points (two, four and eight days post-treatment).
+The purpose of the present analysis is to examine similarities and differences in terms of gene expression associated with the reproductive tissues (spermatheca, vagina, median oviduct) of _Bombus terrestris_ workers and queens. For the present study, control (unmated) and artificially inseminated bumblebees were collected and tissues removed at three different time points (two, four and eight days post-treatment).
 
 1. Load libraries:
 
 ```{r, message = FALSE}
-#install.packages("BiocManager") 
-#BiocManager::install("WGCNA")
-#install.packages("igraph")
 library(WGCNA)
 library(DESeq2)
 library(igraph)
@@ -26,7 +23,7 @@ library(ggcorrplot)
 
 2. Load input data:
 
-The expression data is contained in the file LiverFemale3600.csv that comes with this tutorial. After starting an R session, we load the requisite packages and the data, after appropriately setting the working directory:
+Load data, which should include normalised gene-level counts. Here, normalisation was performed using variance-stablising transformation as performed by DESeq2.
 
 ```{r, message = FALSE}
 # The following setting is important, do not omit.
@@ -37,14 +34,14 @@ data <- readRDS(file = "input/vsd_spermatheca_treatment.rds")
 data_counts <- assay(data)
 ```
 
-3. In addition to expression data, the data files contain extra information about the surveyed probes we do not need. One can inspect larger data frames such as femData by invoking R data editor via fix(femData). The expression data set contains 135 samples. Note that each row corresponds to a gene and column to a sample or auxiliary information. We now remove the auxiliary data and transpose the expression data for further analysis.
+3. Transpose the input dataframe so each column is a gene and row is a sample.  
 
 ```{r, message=FALSE}
 ## We need a transposed dataframe consisting of gene per column and sample per row:
 transposed_data <- t(data_counts)
 ```
 
-4. Checking data for excessive missing values and identification of outlier microarray samples
+4. Check data for excessive missing values and identification of outlier samples
 
 We first check for genes and samples with too many missing values:
 
@@ -89,12 +86,9 @@ plot(exp_sampleTree, main = "Sample clustering to detect outliers",
      cex.main = 2)
 ```
 
-It appears there is one outlier (sample F2_221, see Fig. 1). One can remove it by hand, or use an automatic approach. Choose a height cut that will remove the offending sample, say 15 (the red line in the plot), and use a branch cut at that height.
+Filter identified outlier samples - in this case, there is an issue with sample 37.
 
 ```{r, message = FALSE}
-## For the experimental dataset, there is an issue with sample 37:
-# Plot a line to show the cut
-#abline(h = 15, col = "red");
 # Determine cluster under the line
 clust = cutreeStatic(exp_sampleTree,
                      cutHeight = 150,
@@ -107,10 +101,14 @@ nGenes = ncol(transposed_data_filt)
 nSamples = nrow(transposed_data_filt)
 ```
 
-The variable datExpr now contains the expression data ready for network analysis.  
+The object transposed_data_filt now contains the expression data ready for network analysis.  
 
-6 Loading trait data
-We now read in the trait data and match the samples for which they were measured to the expression samples.
+6. Loading trait data
+We now read in the trait data and match the samples for which they were measured to the expression samples.  
+For our experiment, we have three traits or attributes of interest:
+- Caste
+- Treatment
+- Age of individual
 
 ```{r, message = FALSE}
 ## Read in sample information:
@@ -129,7 +127,7 @@ samples_information <- subset(samples_information,
                               row.names(samples_information) %in% row.names(transposed_data_filt))
 ```
 
-We now have the expression data in the variable datExpr, and the corresponding clinical traits in the variable datTraits. Before we continue with network construction and module detection, we visualize how the clinical traits relate to the sample dendrogram.  
+Before we continue with network construction and module detection, we visualize how the traits relate to the sample dendrogram.  
 
 ```{r, message = FALSE}
 ## Run for experimental dataset:
@@ -159,11 +157,9 @@ saveRDS(object = exp_sampleTree2, file = "results/exp_sampleTree2_spermatheca.rd
 saveRDS(object = exp_traitColors, file = "results/exp_traitColors_spermatheca.rds")
 ```
 
-In the plot, shown in Fig. 2, white means a low value, red a high value, and grey a missing entry. The last step is to save the relevant expression and trait data for use in the next steps of the tutorial. 
-
 7 Step-by-step network construction and module detection
 7.1 Choosing the soft-thresholding power: analysis of network topology
-Constructing a weighted gene network entails the choice of the soft thresholding power β to which co-expression similarity is raised to calculate adjacency [1]. The authors of [1] have proposed to choose the soft thresholding power based on the criterion of approximate scale-free topology. We refer the reader to that work for more details; here we illustrate the use of the function pickSoftThreshold that performs the analysis of network topology and aids the user in choosing a proper soft-thresholding power. The user chooses a set of candidate powers (the function provides suitable default values), and the function returns a set of network indices that should be inspected, for example as follows:  
+Constructing a weighted gene network entails the choice of the soft thresholding power β to which co-expression similarity is raised to calculate adjacency. 
 
 ```{r, message = FALSE}
 ## For the experimental set:
@@ -229,7 +225,7 @@ diss_exp_TOM = 1-exp_TOM
 ```
 
 7.4 Clustering using TOM
-We now use hierarchical clustering to produce a hierarchical clustering tree (dendrogram) of genes. Note that we use the function hclust that provides a much faster hierarchical clustering routine than the standard hclust function.  
+We now use hierarchical clustering to produce a hierarchical clustering tree (dendrogram) of genes:  
 
 ```{r, message = FALSE}
 ## Experimental data:
@@ -245,7 +241,7 @@ plot(exp_geneTree,
      hang = 0.04);
 ```
 
-The clustering dendrogram plotted by the last command is shown in Figure 2. In the clustering tree (dendrogram), each leaf, that is a short vertical line, corresponds to a gene. Branches of the dendrogram group together densely interconnected, highly co-expressed genes. Module identification amounts to the identification of individual branches (”cutting the branches off the dendrogram”). There are several methods for branch cutting; our standard method is the Dynamic Tree Cut from the package dynamicTreeCut. The next snippet of code illustrates its use.  
+In the clustering tree (dendrogram), each leaf, that is a short vertical line, corresponds to a gene. Branches of the dendrogram group together densely interconnected, highly co-expressed genes. Module identification amounts to the identification of individual branches (”cutting the branches off the dendrogram”).
 
 ```{r, message = FALSE}
 ## Experimental set:
@@ -260,7 +256,7 @@ exp_dynamicMods = cutreeDynamic(dendro = exp_geneTree,
 table(exp_dynamicMods)
 ```
 
-The function returned 22 modules labeled 1–22 largest to smallest. Label 0 is reserved for unassigned genes. The above command lists the sizes of the modules. We now plot the module assignment under the gene dendrogram:
+We now plot the module assignment under the gene dendrogram:
 
 ```{r, message=FALSE}
 ## Experimental data:
@@ -280,7 +276,7 @@ plotDendroAndColors(exp_geneTree,
 ```
 
 7.5 Merging of modules whose expression profiles are very similar
-The Dynamic Tree Cut may identify modules whose expression profiles are very similar. It may be prudent to merge such modules since their genes are highly co-expressed. To quantify co-expression similarity of entire modules, we calculate their eigengenes and cluster them on their correlation  
+The Dynamic Tree Cut may identify modules whose expression profiles are very similar. It may be prudent to merge such modules since their genes are highly co-expressed. To quantify co-expression similarity of entire modules, we calculate their eigengenes and cluster them on their correlation:   
 
 ```{r, message = FALSE}
 ## Experimental dataset:
@@ -301,13 +297,11 @@ plot(exp_METree,
      sub = "")
 ```
 
-We choose a height cut of 0.25, corresponding to correlation of 0.75, to merge (see Fig. 4):
+We choose a height cut of 0.25, corresponding to correlation of 0.75, to merge:
 
 ```{r, message = FALSE}
 ## for the experimental dataset:
 exp_MEDissThres = 0.25
-# Plot the cut line into the dendrogram
-# abline(h=exp_MEDissThres, col = "red")
 # Call an automatic merging function
 exp_merge = mergeCloseModules(transposed_data_filt,
                               exp_dynamicColors,
@@ -319,7 +313,7 @@ exp_mergedColors = exp_merge$colors;
 exp_mergedMEs = exp_merge$newMEs;
 ```
 
-To see what the merging did to our module colors, we plot the gene dendrogram again, with the original and merged module colors underneath (Figure 5).
+To see what the merging did to our module colors, we plot the gene dendrogram again, with the original and merged module colors underneath.
 
 ```{r, message = FALSE}
 sizeGrWindow(12, 9)
@@ -355,7 +349,7 @@ save(exp_MEs,
 
 8. Relating modules to external traits
 8.1 Quantifying module–trait associations
-In this analysis we would like to identify modules that are significantly associated with the measured  traits. Since we already have a summary profile (eigengene) for each module, we simply correlate eigengenes with external traits and look for the most significant associations:
+In this analysis we would like to identify modules that are significantly associated with the measured traits. Since we already have a summary profile (eigengene) for each module, we simply correlate eigengenes with external traits and look for the most significant associations:
 
 ```{r, message = FALSE}
 # Define numbers of genes and samples
@@ -372,7 +366,7 @@ exp_moduleTraitPvalue = corPvalueStudent(exp_moduleTraitCor,
                                          exp_nSamples);
 ```
 
-Since we have a moderately large number of modules and traits, a suitable graphical representation will help in reading the table. We color code each association by the correlation value:  
+We color code each association by the correlation value:  
 
 ```{r, message = FALSE}
 ## Experimental dataset:
@@ -407,8 +401,7 @@ save(exp_MEs,
      file = "results/spermatheca-03-input_for_labelled_heatmap.RData")
 ```
 
-The resulting color-coded table is shown in Fig. 1.
-The analysis identifies the several significant module–trait associations. We will concentrate on weight as the trait of interest.  
+The analysis identifies the several significant module–trait associations.
 
 8.2 Gene relationship to trait and important modules: Gene Significance and Module Membership
 We quantify associations of individual genes with our trait of interest (treatment) by defining Gene Significance GS as (the absolute value of) the correlation between the gene and the trait. For each module, we also define a quantitative measure of module membership MM as the correlation of the module eigengene and the gene expression profile. This allows us to quantify the similarity of all genes on the array to every module.
@@ -445,7 +438,7 @@ names(exp_GSPvalue) = paste("p.GS.",
 ```
 
 8.3 Intramodular analysis: identifying genes with high GS and MM
-Using the GS and MM measures, we can identify genes that have a high significance for treatment as well as high module membership in interesting modules. As an example, we look at the brown module that has the highest association with weight. We plot a scatterplot of Gene Significance vs. Module Membership in the brown module:  
+Using the GS and MM measures, we can identify genes that have a high significance for treatment as well as high module membership in interesting modules:
 
 ```{r, message = FALSE}
 exp_module = "yellow"
@@ -502,7 +495,7 @@ verboseScatterplot(abs(exp_geneModuleMembership[exp_moduleGenes, exp_column]),
 ```
 
 
-3.d Summary output of network analysis results
+8.d Summary output of network analysis results
 We have found modules with high association with our trait of interest, and have identified their central players by the Module Membership measure. We now merge this statistical information with gene annotation and write out a file that summarizes the most important results and can be inspected in standard spreadsheet software such as MS Excel or Open Office Calc. Our expression data are only annotated by probe ID names: the command 
 will return all probe IDs included in the analysis. Similarly, the second command below 
 will return probe IDs belonging to the brown module. To facilitate interpretation of the results, we use a probe annotation file provided by the manufacturer of the expression arrays to connect probe IDs to gene names and universally recognized identification numbers (Entrez codes).
@@ -667,187 +660,7 @@ ggsave(file = "results/combined_cor_go_term_plot.pdf",
        dpi = 600)
 ```
 
-5 Visualization of networks within R 5.a Visualizing the gene network
-One way to visualize a weighted network is to plot its heatmap, Fig. 1. Each row and column of the heatmap correspond to a single gene. The heatmap can depict adjacencies or topological overlaps, with light colors denoting low adjacency (overlap) and darker colors higher adjacency (overlap). In addition, the gene dendrograms and module colors are plotted along the top and left side of the heatmap. The package provides a convenient function to create such network plots; Fig. 1 was created using the following code. This code can be executed only if the network was calculated using a single-block approach (that is, using the 1-step automatic or the step-by-step tutorials). If the networks were calculated using the block-wise approach, the user will need to modify this code to perform the visualization in each block separately. The modification is simple and we leave it as an exercise for the interested reader.
-
-```{r, message = FALSE}
-# Calculate topological overlap anew: this could be done more efficiently by saving the TOM
-# calculated during module detection, but let us do it again here.
-dissTOM = 1-TOMsimilarityFromExpr(transposed_data_filt, power = 6);
-# Transform dissTOM with a power to make moderately strong connections more visible in the heatmap
-plotTOM = dissTOM^7;
-# Set diagonal to NA for a nicer plot
-diag(plotTOM) = NA;
-# Call the plot function
-sizeGrWindow(9,9)
-TOMplot(plotTOM,
-        exp_geneTree,
-        exp_moduleColors,
-        main = "Network heatmap plot, all genes")
 ```
-
-Note that the generating the heatmap plot may take a substantial amount of time. It is possible to restrict the number of genes to speed up the plotting; however, the gene dendrogram of a subset of genes will often look different from the gene dendrogram of all genes. In the following example we restrict the number of plotted genes to 400:
-
-```{r, message = FALSE}
-nSelect = 400
-# For reproducibility, we set the random seed
-set.seed(10);
-select = sample(nGenes, size = nSelect);
-selectTOM = dissTOM[select, select];
-# There’s no simple way of restricting a clustering tree to a subset of genes, so we must re-cluster.
-selectTree = hclust(as.dist(selectTOM),
-                    method = "average")
-selectColors = exp_moduleColors[select];
-# Open a graphical window
-sizeGrWindow(9,9)
-# Taking the dissimilarity to a power, say 10, makes the plot more informative by effectively changing
-# the color palette; setting the diagonal to NA also improves the clarity of the plot
-plotDiss = selectTOM^7;
-diag(plotDiss) = NA;
-TOMplot(plotDiss, selectTree, selectColors, main = "Network heatmap plot, selected genes")
-```
-
-5.b Visualizing the network of eigengenes
-It is often interesting to study the relationships among the found modules. One can use the eigengenes as represen- tative profiles and quantify module similarity by eigengene correlation. The package contains a convenient function plotEigengeneNetworks that generates a summary plot of the eigengene network. It is usually informative to add a clinical trait (or multiple traits) to the eigengenes to see how the traits fit into the eigengene network:  
-```{r, message = FALSE}
-# Recalculate module eigengenes
-MEs = moduleEigengenes(transposed_data_filt,
-                       exp_moduleColors)$eigengenes
-# Isolate weight from the clinical traits
-treatment = as.data.frame(samples_information$treatment);
-names(treatment) = "treatment"
-# Add the weight to existing module eigengenes
-MET = orderMEs(cbind(MEs, treatment))
-# Plot the relationships among the eigengenes and the trait
-sizeGrWindow(5,7.5);
-par(cex = 0.9)
-plotEigengeneNetworks(MET, "", marDendro = c(0,4,1,2), marHeatmap = c(3,4,1,2), cex.lab = 0.8, xLabelsAngle
-= 90)
-```
-
-The function produces a dendrogram of the eigengenes and trait(s), and a heatmap of their relationships. To split the dendrogram and heatmap plots, we can use the following code
-
-```{r, message = FALSE}
-# Plot the dendrogram
-sizeGrWindow(6,6);
-par(cex = 1.0)
-plotEigengeneNetworks(MET, "Eigengene dendrogram", marDendro = c(0,4,2,0),
-                    plotHeatmaps = FALSE)
-# Plot the heatmap matrix (note: this plot will overwrite the dendrogram plot)
-par(cex = 1.0)
-plotEigengeneNetworks(MET, "Eigengene adjacency heatmap", marHeatmap = c(3,4,2,2),
-                    plotDendrograms = FALSE, xLabelsAngle = 90)
-```
-
-Fig. 2 shows the output of the above code. The eigengene dendrogram and heatmap identify groups of correlated eigengenes termed meta-modules. For example, the dendrogram indicates that red, brown and bluw modules are highly related; their mutual correlations are stronger than their correlations with weight. On the other hand, the salmon module, which is also significantly correlated with weight, is not part of the same meta-module as the red,
-   
-brown and blue modules, at least if meta-modules are defined as tight custers of modules (for example, modules with a correlation of eigengenes of at least 0.5).
-
-```{r, message = FALSE}
-# Recalculate topological overlap if needed
-TOM = TOMsimilarityFromExpr(transposed_data_filt,
-                            power = 6);
-# Read in the annotation file
-#annot = read.csv(file = "GeneAnnotation.csv");
-# Select modules
-modules = c("yellow", "red");
-# Select module probes
-probes = names(transposed_data_filt)
-inModule = is.finite(match(exp_moduleColors, modules));
-modProbes = probes[inModule];
-#modGenes = annot$gene_symbol[match(modProbes, annot$substanceBXH)];
-# Select the corresponding Topological Overlap
-modTOM = TOM[inModule, inModule];
-
-dimnames(modTOM) = list(modProbes, modProbes)
-# Export the network into edge and node list files Cytoscape can read
-cyt = exportNetworkToCytoscape(modTOM,
-  edgeFile = paste("CytoscapeInput-edges-", paste(modules, collapse="-"), ".txt", sep=""),
-  nodeFile = paste("CytoscapeInput-nodes-", paste(modules, collapse="-"), ".txt", sep=""),
-  weighted = TRUE,
-  threshold = 0.02,
-  nodeNames = modProbes,
-  altNodeNames = c(red_module_genes, yellow_module_genes),
-  nodeAttr = exp_moduleColors[inModule]);
-```
-
-Igraph analysis:
-
-```{r, message = FALSE}
-## Subset "yellow genes"
-## Let us transpose back:
-data_filt <- t(transposed_data_filt)
-
-## Subset genes of interest:
-data_filt_yellow <- subset(x = data_filt,
-                           row.names(data_filt) %in% yellow_module_genes)
-
-## Remove 'unmapped' and 'unambiguous' counts:
-data_filt_yellow <- data_filt_yellow[-c(1,2), ]
-
-# Create a graph adjacency based on correlation distances between genes in  pairwise fashion.
-g <- graph.adjacency(
-  as.matrix(as.dist(cor(t(data_filt_yellow), method="pearson"))),
-  mode="undirected",
-  weighted=TRUE,
-  diag=FALSE
-)
-
-# Simplfy the adjacency object
-g <- simplify(g, remove.multiple=TRUE, remove.loops=TRUE)
-
-# Colour negative correlation edges as blue
-E(g)[which(E(g)$weight<0)]$color <- "darkblue"
-
-# Colour positive correlation edges as red
-E(g)[which(E(g)$weight>0)]$color <- "darkred"
-
-# Convert edge weights to absolute values
-E(g)$weight <- abs(E(g)$weight)
-
-# Remove edges below absolute Pearson correlation 0.8
-g <- delete_edges(g, E(g)[which(E(g)$weight<0.8)])
-
-# Remove any vertices remaining that have no edges
-g <- delete.vertices(g, degree(g)==0)
-
-# Assign names to the graph vertices (optional)
-V(g)$name <- V(g)$name
-
-# Change shape of graph vertices
-V(g)$shape <- "sphere"
-
-# Change colour of graph vertices
-V(g)$color <- "skyblue"
-
-# Change colour of vertex frames
-V(g)$vertex.frame.color <- "white"
-
-# Scale the size of the vertices to be proportional to the level of expression of each gene represented by each vertex
-# Multiply scaled vales by a factor of 10
-scale01 <- function(x){(x-min(x))/(max(x)-min(x))}
-vSizes <- (scale01(apply(data_filt_yellow, 1, mean)) + 1.0) * 10
-
-# Amplify or decrease the width of the edges
-edgeweights <- E(g)$weight * 2.0
-
-# Convert the graph adjacency object into a minimum spanning tree based on Prim's algorithm
-mst <- mst(g, algorithm="prim")
-
-# Plot the tree object
-plot(
-  mst,
-  layout=layout.fruchterman.reingold,
-  edge.curved=TRUE,
-  vertex.size=vSizes,
-  vertex.label.dist=-0.5,
-  vertex.label.color="black",
-  asp=FALSE,
-  vertex.label.cex=0.6,
-  edge.width=edgeweights,
-  edge.arrow.mode=0,
-  main="Genes of the yellow module")
-
 ## Choose top hub for each module:
 chooseTopHubInEachModule(transposed_data_filt,
                          colorh = exp_moduleColors)
