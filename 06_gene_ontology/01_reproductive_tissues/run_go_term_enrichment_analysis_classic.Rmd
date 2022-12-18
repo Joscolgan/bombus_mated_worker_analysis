@@ -145,10 +145,9 @@ for (go_category in c("BP", "MF", "CC")) {
   ## Combine results from statistical tests:
   result_classic_output <- GenTable(object        = my_go_data,
                                    classic_ks     = result_classic_ks,
-                                   #weight_fisher = result_weight_fisher,
                                    orderBy       = "classic_ks",
                                    topNodes      = length(score(result_classic_ks)))
-  ## Correct ks test for multiple testing:
+  ## Optional: Correct ks test for multiple testing:
   result_classic_output$classic_ks <- as.numeric(na.omit(result_classic_output$classic_ks))
   result_classic_output$classic_ks_adjusted <- p.adjust(p = result_classic_output$classic_ks,
                                                       method = c("BH"))
@@ -173,5 +172,5 @@ Run lintr:
 
 ```{r, message = FALSE}
 ## Check style:
-lintr::lint(file = "go_enrichment_analysis.Rmd")
+lintr::lint(file = "run_go_term_enrichment_analysis_classic.Rmd")
 ```
