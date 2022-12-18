@@ -15,5 +15,5 @@ The following directory contains scripts for:
 --> Performed using [topGO](https://bioconductor.org/packages/release/bioc/html/topGO.html).  
 ---> Kolmogorov-Smirnov test.  
 ---> Fisher's Exact test. 
-- **Weighted gene co-expression network analysis.**. 
+- **Weighted gene co-expression network analysis.**.  
 --> Performed using [WGCNA](https://cran.r-project.org/web/packages/WGCNA/index.html).  
