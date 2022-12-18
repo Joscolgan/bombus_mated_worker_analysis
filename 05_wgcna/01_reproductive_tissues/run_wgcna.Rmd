@@ -12,6 +12,9 @@ fontsize: 20pt
 ## Introduction
 The purpose of the present analysis is to examine similarities and differences in terms of gene expression associated with the reproductive tissues (spermatheca, vagina, median oviduct) of _Bombus terrestris_ workers and queens. For the present study, control (unmated) and artificially inseminated bumblebees were collected and tissues removed at three different time points (two, four and eight days post-treatment).
 
+The analysis provided here follows steps outlined by the authors of WGCNA - additional information can be found here:  
+https://horvath.genetics.ucla.edu/html/CoexpressionNetwork/Rpackages/WGCNA/Tutorials/
+  
 1. Load libraries:
 
 ```{r, message = FALSE}
