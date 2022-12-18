@@ -152,5 +152,5 @@ Run lintr:
 
 ```{r, message = FALSE}
 ## Check style:
-lintr::lint(file = "go_enrichment_analysis.Rmd")
+lintr::lint(file = "run_go_term_enrichment_analysis_fisher.Rmd")
 ```
