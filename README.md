@@ -10,6 +10,6 @@ The following directory contains scripts for:
 - Differential expression analysis.    
 - Principal component analysis. 
 - Gene Ontology term enrichment analysis.  
----> Kolmogorov-Smirnov test. 
+---> Kolmogorov-Smirnov test.  
 ---> Fisher's Exact test. 
 - Weighted gene co-expression network analysis.  
