@@ -1,7 +1,12 @@
---- 
-title: "Salmo sex study"
-output: go_enrichment_analysis.html
-author: Joe Colgan (joscolgan)
+---
+author: "Joe Colgan"
+title: "**Gene Ontology term enrichment analysis of control and inseminated spermatheca of _Bombus terrestris_ workers and queens**"
+output:
+  pdf_document: default
+  html_document: default
+fig_width: 4
+fig_height: 4
+fontsize: 20pt
 ---
 
 # Introduction 
@@ -50,7 +55,7 @@ input <- "data/output_go_term_database.tmp"
 gene_to_go_mapping_file <- input
 
 ## file of significant genes (2 column file: i.e. gene id and pvalue) file:
-gene_list <- scan(file = "input/blue_module_genes.txt",
+gene_list <- scan(file = "input/red_module_genes.txt",
                   as.character())
 
 ## Define node size:
@@ -62,7 +67,7 @@ output_directory <- paste("results/",
                           database,
                           "/output_",
                           node_size,
-                          "_blue_fisher_wgcna_weight01",
+                          "_fisher_wgcna_weight01",
                           sep = "")
 if (file.exists(output_directory)) {
   stop("The output directory:", output_directory, ", already exists",
@@ -113,7 +118,7 @@ for (go_category in c("BP", "MF", "CC")) {
                     annot       = annFUN.gene2GO,
                     nodeSize    = node_size)
   # STEP THREE
-  ## Calculate ks test using 'weight01' algorithm:
+  ## Calculate Fisher's exac test using 'weight01' algorithm:
   result_weight_fisher <- runTest(object    = my_go_data,
                               algorithm = "weight01",
                               statistic = "fisher")
@@ -122,7 +127,7 @@ for (go_category in c("BP", "MF", "CC")) {
                                    weight_fisher = result_weight_fisher,
                                    orderBy       = "weight_fisher",
                                    topNodes      = length(score(result_weight_fisher)))
-  ## Correct ks test for multiple testing:
+  ## Optional: Correct Fisher's test for multiple testing:
   result_weight_output$weight_fisher <- as.numeric(na.omit(result_weight_output$weight_fisher))
   result_weight_output$adjusted_weight_fisher <- p.adjust(p = result_weight_output$weight_fisher,
                                                       method = c("BH"))
