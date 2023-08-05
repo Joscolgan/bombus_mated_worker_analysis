@@ -11,7 +11,7 @@ library(ggpubr)
 2. Load data:
 
 ```{r, message = FALSE}
-data <- read.table(file = "data/new_data.txt",
+data <- read.table(file = "data/caste_weight_data.txt",
                    header = FALSE)
 
 ## Update column names:
@@ -38,6 +38,10 @@ data$species <- gsub(pattern = "montivagus",
 ```
 
 3. Plot data:
+For the purposes of examining the distrubution of weight across castes of three
+bumblebee (Bombus) species, (a) histograms and (b) boxplots were generated for each:
+
+a) Generation of histograms:
 
 ```{r, message = FALSE}
 ## Reorder levels for plotting:
@@ -51,7 +55,7 @@ data$combined <- paste(data$species,
                        ")",
                        sep = "")
 
-## Reorder:
+## Reorder and relabel:
 data$combined <- factor(data$combined,
                         levels = c("Bombus montivagus (1)",
                                    "Bombus ignitus (1)",
@@ -59,6 +63,9 @@ data$combined <- factor(data$combined,
                                    "Bombus ignitus (15)",
                                    "Bombus lantschouensis (15)"))
 
+## For convenience, a function 'histogram_plotter' for generating
+## histograms which takes a dataframe ('data') as input. The function
+## outputs a ggplot-generated image:
 histogram_plotter <- function(data){
   tmp <- ggplot(data = data,
        aes(x = weight,
@@ -73,15 +80,16 @@ histogram_plotter <- function(data){
                                   size = 10),
         strip.text = element_text(face = "italic"),
                 legend.position = "none")
-  ##
   print(tmp)
 }
 
+## Perform for the first species:
 plot1a <- histogram_plotter(data = subset(data,
                                 combined == "Bombus montivagus (1)")) +
   facet_wrap(~combined) +
   scale_fill_manual(values = "gray")
  
+## Perform for the second species:
 plot2a <- histogram_plotter(data = subset(data,
                                 combined == "Bombus ignitus (1)")) +
   facet_wrap(~combined) +
@@ -92,6 +100,7 @@ plot3a <-  histogram_plotter(data = subset(data,
   facet_wrap(~combined) +
   scale_fill_manual(values = "orange")
 
+## Perform for the third species:
 plot4a <- histogram_plotter(data = subset(data,
                                 combined == "Bombus lantschouensis (1)")) +
   facet_wrap(~combined) +
@@ -102,7 +111,22 @@ plot5a <- histogram_plotter(data = subset(data,
   facet_wrap(~combined) +
   scale_fill_manual(values = "purple")
 
+## For all histograms, combine into a multi-panel plot:
+combined_1 <-  ggarrange(plot1a,
+                         plot2a,
+                         plot3a,
+                         plot4a,
+                         plot5a,
+        nrow = 1,
+        ncol = 5)
+```
 
+b) Generation of boxplots:
+
+```
+## For convenience, a function 'boxplotter' for generating
+## boxplots which takes a dataframe ('data') as input. The function
+## outputs a ggplot-generated image:
 boxplotter <- function(data){
   tmp <- ggplot(data = data,
        aes(x = caste,
@@ -121,11 +145,13 @@ boxplotter <- function(data){
   print(tmp)
 }
 
+## Perform for the first species:
 plot1b <- boxplotter(data = subset(data,
                                 combined == "Bombus montivagus (1)")) +
   facet_wrap(~combined) +
   scale_fill_manual(values = "gray")
- 
+
+## Perform for the second species:
 plot2b <- boxplotter(data = subset(data,
                                 combined == "Bombus ignitus (1)")) +
   facet_wrap(~combined) +
@@ -136,6 +162,7 @@ plot3b <-  boxplotter(data = subset(data,
   facet_wrap(~combined) +
   scale_fill_manual(values = "orange")
 
+## Perform for the third species:
 plot4b <- boxplotter(data = subset(data,
                                 combined == "Bombus lantschouensis (1)")) +
   facet_wrap(~combined) +
@@ -146,14 +173,7 @@ plot5b <- boxplotter(data = subset(data,
   facet_wrap(~combined) +
   scale_fill_manual(values = "purple")
 
-combined_1 <-  ggarrange(plot1a,
-                         plot2a,
-                         plot3a,
-                         plot4a,
-                         plot5a,
-        nrow = 1,
-        ncol = 5)
-
+## Generate a second combined plot:
 combined_2 <-  ggarrange(plot1b,
                          plot2b,
                          plot3b,
@@ -161,15 +181,27 @@ combined_2 <-  ggarrange(plot1b,
                          plot5b,
         nrow = 1,
         ncol = 5)
+```
 
+4. Combine and save:
+
+```{r, message = FALSE
 combined_plot <- ggarrange(combined_1,
           combined_2,
           nrow = 2,
           ncol = 1,
           align = "hv")
 
-ggsave(filename = "~/Documents/2023/drafts/nat_comm_spermatheca/alternative_combined_plot.png",
+ggsave(filename = "results/combined_weight_distribution_caste_plot.png",
        plot = combined_plot,
        width = 12,
        height = 8)
 ```
+
+5. Run lint:
+
+```{r, message = FALSE}
+
+
+```
+
