@@ -1,16 +1,28 @@
+---
+author: "Joe Colgan"
+title: "**Weight gene co-expression analysis of control and inseminated _Bombus terrestris_ workers and queens**"
+output:
+  pdf_document: default
+  html_document: default
+fig_width: 4
+fig_height: 4
+fontsize: 20pt
+---
 
-
-Load libraries:
+1. Load libraries:
 
 ```{r, message = FALSE}
-#install.packages("BiocManager") 
-#BiocManager::install("WGCNA") 
 library(WGCNA)
+library(DESeq2)
+library(igraph)
+library(ggcorrplot)
+library(ggplot2)
+library(ggpubr)
 ```
 
-Load input data:
+2. Load input data:
 
-The expression data is contained in the file LiverFemale3600.csv that comes with this tutorial. After starting an R session, we load the requisite packages and the data, after appropriately setting the working directory:
+Load data, which should include normalised gene-level counts. Here, normalisation was performed using variance-stablising transformation as performed by DESeq2.
 
 ```{r, message = FALSE}
 ## Load experimental data:
@@ -18,20 +30,20 @@ data <- readRDS(file = "input/vsd_ovary_treatment.rds")
 data_counts <- assay(data)
 ```
 
-In addition to expression data, the data files contain extra information about the surveyed probes we do not need. One can inspect larger data frames such as femData by invoking R data editor via fix(femData). The expression data set contains 135 samples. Note that each row corresponds to a gene and column to a sample or auxiliary information. We now remove the auxiliary data and transpose the expression data for further analysis.
+3. Transpose the input dataframe so each column is a gene and row is a sample.  
 
 ```{r, message=FALSE}
-## We need a transposed dataframe consisting of gene per column and sample per row:
+## We need a transposed dataframe consisting of gene per column and sample per
+## row:
 transposed_data <- t(data_counts)
 ```
 
-1.b Checking data for excessive missing values and identification of outlier microarray samples
-
-We first check for genes and samples with too many missing values:
+4. Check data for excessive missing values and identification of outlier samples
 
 ```{r, message = FALSE}
 ## Run for experimental dataset:
-transposed_gsg <- goodSamplesGenes(transposed_data, verbose = 3)
+transposed_gsg <- goodSamplesGenes(transposed_data,
+                                   verbose = 3)
 transposed_gsg$allOK
 ```
 
@@ -39,55 +51,66 @@ If the last statement returns TRUE, all genes have passed the cuts. If not, we r
 
 ```{r, message = FALSE}
 ## Run for experimental:
-if (!transposed_gsg$allOK)
-{
+if (!transposed_gsg$allOK) {
   # Optionally, print the gene and sample names that were removed:
-  if (sum(!transposed_gsg$goodGenes)>0)
-     printFlush(paste("Removing genes:", paste(names(transposed_data)[!transposed_gsg$goodGenes], collapse = ", ")));
-  if (sum(!transposed_gsg$goodSamples)>0)
-     printFlush(paste("Removing samples:", paste(rownames(transposed_data)[!transposed_gsg$goodSamples], collapse = ", ")));
+  if (sum(!transposed_gsg$goodGenes) > 0)
+     printFlush(paste("Removing genes:",
+                      paste(names(transposed_data)[!transposed_gsg$goodGenes],
+                            collapse = ", ")))
+  if (sum(!transposed_gsg$goodSamples) > 0)
+     printFlush(paste("Removing samples:",
+                  paste(rownames(transposed_data)[!transposed_gsg$goodSamples],
+                            collapse = ", ")))
   # Remove the offending genes and samples from the data:
-  transposed_data = transposed_data[transposed_gsg$goodSamples, transposed_gsg$goodGenes]
+  transposed_data <- transposed_data[transposed_gsg$goodSamples,
+                                    transposed_gsg$goodGenes]
 }
 ```
 
-Next we cluster the samples (in contrast to clustering genes that will come later) to see if there are any obvious outliers.
+5. Next we cluster the samples (in contrast to clustering genes that will come later) to see if there are any obvious outliers.
+
 
 ```{r, message = FALSE}
 ## Run for experimental samples:
-exp_sampleTree = hclust(dist(transposed_data), method = "average");
+exp_sample_tree <- hclust(dist(transposed_data),
+                          method = "average")
 # Plot the sample tree: Open a graphic output window of size 12 by 9 inches
 # The user should change the dimensions if the window is too large or too small.
-sizeGrWindow(12,9)
-#pdf(file = "Plots/sampleClustering.pdf", width = 12, height = 9);
-par(cex = 0.6);
-par(mar = c(0,4,2,0))
-plot(exp_sampleTree, main = "Sample clustering to detect outliers", sub="", xlab="", cex.lab = 1.5,
-    cex.axis = 1.5, cex.main = 2)
+sizeGrWindow(12, 9)
+par(cex = 0.6)
+par(mar = c(0, 4, 2, 0))
+plot(exp_sample_tree,
+     main = "Sample clustering to detect outliers",
+     sub = "",
+     xlab = "",
+     cex.lab = 1.5,
+     cex.axis = 1.5,
+     cex.main = 2)
 ```
 
-It appears there is one outlier (sample F2_221, see Fig. 1). One can remove it by hand, or use an automatic approach. Choose a height cut that will remove the offending sample, say 15 (the red line in the plot), and use a branch cut at that height.
+We filter out identified outlier samples
 
 ```{r, message = FALSE}
-## For the experimental dataset, there is an issue with sample 37:
-# Plot a line to show the cut
-#abline(h = 15, col = "red");
 # Determine cluster under the line
-clust = cutreeStatic(exp_sampleTree,
+clust <- cutreeStatic(exp_sample_tree,
                      cutHeight = 120,
                      minSize = 10)
 table(clust)
 # clust 1 contains the samples we want to keep.
-keepSamples = (clust==1)
-transposed_data_filt = transposed_data[keepSamples, ]
-nGenes = ncol(transposed_data_filt)
-nSamples = nrow(transposed_data_filt)
+keep_samples <- (clust == 1)
+transposed_data_filt <- transposed_data[keep_samples, ]
+n_genes <- ncol(transposed_data_filt)
+n_samples <- nrow(transposed_data_filt)
 ```
 
-The variable datExpr now contains the expression data ready for network analysis.  
+The object transposed_data_filt now contains the expression data ready for network analysis.  
 
-1.c Loading clinical trait data
-We now read in the trait data and match the samples for which they were measured to the expression samples.
+6. Loading sample information:
+We now read in sample information metadata and match to the expression samples.  
+For our experiment, we have three attributes of interest:
+- Caste
+- Treatment
+- Age or stage of ovarian development depending on tissue
 
 ```{r, message = FALSE}
 ## Read in sample information:
@@ -105,161 +128,201 @@ colnames(samples_information) <- c("caste",
 samples_information <- samples_information[keepSamples, ]
 ```
 
-We now have the expression data in the variable datExpr, and the corresponding clinical traits in the variable datTraits. Before we continue with network construction and module detection, we visualize how the clinical traits relate to the sample dendrogram.  
+Before network construction and module detection, we visualise how the attributes relate to the sample dendrogram.  
 
 ```{r, message = FALSE}
 ## Run for experimental dataset:
 # Re-cluster samples
-exp_sampleTree2 = hclust(dist(transposed_data_filt),
+exp_sample_tree2 <- hclust(dist(transposed_data_filt),
                          method = "average")
-# Convert traits to a color representation: white means low, red means high, grey means missing entry
-exp_traitColors = numbers2colors(samples_information, signed = FALSE);
+## Convert traits to a color representation: white means low, red means high,
+## grey means missing entry
+exp_trait_colors <- numbers2colors(samples_information,
+                                  signed = FALSE)
 # Plot the sample dendrogram and the colors underneath.
-plotDendroAndColors(exp_sampleTree2,
-                    exp_traitColors,
-                  groupLabels = names(samples_information),
-                  main = "Sample dendrogram and trait heatmap")
+plotDendroAndColors(exp_sample_tree2,
+                    exp_trait_colors,
+                    groupLabels = names(samples_information),
+                    main = "Sample dendrogram and trait heatmap")
 
-saveRDS(object = exp_sampleTree2, file = "results/exp_sampleTree2_ovary.rds")
-saveRDS(object = exp_traitColors, file = "results/exp_traitColors_ovary.rds")
+saveRDS(object = exp_sample_tree2,
+        file = "results/exp_sample_tree2_ovary.rds")
+saveRDS(object = exp_trait_colors,
+        file = "results/exp_trait_colors_ovary.rds")
 ```
 
-In the plot, shown in Fig. 2, white means a low value, red a high value, and grey a missing entry. The last step is to save the relevant expression and trait data for use in the next steps of the tutorial.  
-
-2.b Step-by-step network construction and module detection
-2.b.1 Choosing the soft-thresholding power: analysis of network topology
-Constructing a weighted gene network entails the choice of the soft thresholding power β to which co-expression similarity is raised to calculate adjacency [1]. The authors of [1] have proposed to choose the soft thresholding power based on the criterion of approximate scale-free topology. We refer the reader to that work for more details; here we illustrate the use of the function pickSoftThreshold that performs the analysis of network topology and aids the user in choosing a proper soft-thresholding power. The user chooses a set of candidate powers (the function provides suitable default values), and the function returns a set of network indices that should be inspected, for example as follows:  
+7 Step-by-step network construction and module detection:  
+7.1 Choosing the soft-thresholding power: analysis of network topology
+Constructing a weighted gene network entails the choice of the soft thresholding power β to which co-expression similarity is raised to calculate adjacency.  
 
 ```{r, message = FALSE}
 ## For the experimental set:
 # Choose a set of soft-thresholding powers
-powers = c(c(1:10), seq(from = 12, to=40, by=2))
+powers <- c(c(1:10),
+           seq(from = 12,
+               to = 40,
+               by = 2))
 # Call the network topology analysis function
-exp_sft = pickSoftThreshold(transposed_data_filt, powerVector = powers, verbose = 5)
+exp_sft <- pickSoftThreshold(transposed_data_filt,
+                            powerVector = powers,
+                            verbose = 5)
 # Plot the results:
 sizeGrWindow(9, 5)
-par(mfrow = c(1,2));
-cex1 = 0.9;
+par(mfrow = c(1, 2))
+cex1 <- 0.9
 # Scale-free topology fit index as a function of the soft-thresholding power
-plot(exp_sft$fitIndices[,1], -sign(exp_sft$fitIndices[,3])*exp_sft$fitIndices[,2],
-     xlab="Soft Threshold (power)",ylab="Scale Free Topology Model Fit,signed R^2",type="n",
-     main = paste("Scale independence"));
-text(exp_sft$fitIndices[,1], -sign(exp_sft$fitIndices[,3])*exp_sft$fitIndices[,2],
-     labels=powers,cex=cex1,col="red");
+plot(exp_sft$fitIndices[, 1],
+     -sign(exp_sft$fitIndices[, 3]) * exp_sft$fitIndices[, 2],
+     xlab = "Soft Threshold (power)",
+     ylab = "Scale Free Topology Model Fit,signed R^2",
+     type = "n",
+     main = paste("Scale independence"))
+text(exp_sft$fitIndices[, 1],
+     -sign(exp_sft$fitIndices[, 3]) * exp_sft$fitIndices[, 2],
+     labels = powers,
+     cex = cex1,
+     col = "red")
 # this line corresponds to using an R^2 cut-off of h
-abline(h=0.90,col="red")
+abline(h = 0.90,
+       col = "red")
 # Mean connectivity as a function of the soft-thresholding power
-plot(exp_sft$fitIndices[,1], exp_sft$fitIndices[,5],
-     xlab="Soft Threshold (power)",ylab="Mean Connectivity", type="n",
+plot(exp_sft$fitIndices[, 1],
+     exp_sft$fitIndices[, 5],
+     xlab = "Soft Threshold (power)",
+     ylab = "Mean Connectivity",
+     type = "n",
      main = paste("Mean connectivity"))
-text(exp_sft$fitIndices[,1], exp_sft$fitIndices[,5], labels=powers, cex=cex1,col="red")
+text(exp_sft$fitIndices[, 1],
+     exp_sft$fitIndices[, 5],
+     labels = powers,
+     cex = cex1,
+     col = "red")
 ```
 
-2.b.2 Co-expression similarity and adjacency
-We now calculate the adjacencies, using the soft thresholding power 12:
+7.2 Co-expression similarity and adjacency
+We now calculate the adjencies, using the soft thresholding power 12:
 
 ```{r, message = FALSE}
 ## For experimental dataset:
-softPower = 12;
-exp_adjacency = adjacency(transposed_data_filt, power = softPower);
+soft_power <- 12
+exp_adjacency <- adjacency(transposed_data_filt,
+                          power = soft_power)
 ```
 
-2.b.3 Topological Overlap Matrix (TOM)
-To minimize effects of noise and spurious associations, we transform the adjacency into Topological Overlap Matrix, and calculate the corresponding dissimilarity:
+7.3 Topological Overlap Matrix (TOM)
+To minimize effects of noise and spurious associations, we transform the adjacency into a Topological Overlap Matrix (TOM), and calculate the corresponding dissimilarity:
 
 ```{r, message = FALSE}
 ## Experimental dataset:
 # Turn adjacency into topological overlap
-exp_TOM = TOMsimilarity(exp_adjacency);
-diss_exp_TOM = 1-exp_TOM
+exp_tom <- TOMsimilarity(exp_adjacency)
+diss_exp_tom <- 1 - exp_tom
 ```
 
-2.b.4 Clustering using TOM
-We now use hierarchical clustering to produce a hierarchical clustering tree (dendrogram) of genes. Note that we use the function hclust that provides a much faster hierarchical clustering routine than the standard hclust function.  
+7.4 Clustering using TOM
+We now use hierarchical clustering to produce a hierarchical clustering tree (dendrogram) of genes:  
 
 ```{r, message = FALSE}
 ## Experimental data:
-exp_geneTree = hclust(as.dist(diss_exp_TOM), method = "average");
+exp_gene_tree <- hclust(as.dist(diss_exp_tom),
+                      method = "average")
 # Plot the resulting clustering tree (dendrogram)
-sizeGrWindow(12,9)
-plot(exp_geneTree, xlab="", sub="", main = "Gene clustering on TOM-based dissimilarity",
-    labels = FALSE, hang = 0.04);
+sizeGrWindow(12, 9)
+plot(exp_gene_tree,
+     xlab = "",
+     sub = "",
+     main = "Gene clustering on TOM-based dissimilarity",
+     labels = FALSE,
+     hang = 0.04)
 ```
 
-The clustering dendrogram plotted by the last command is shown in Figure 2. In the clustering tree (dendrogram), each leaf, that is a short vertical line, corresponds to a gene. Branches of the dendrogram group together densely interconnected, highly co-expressed genes. Module identification amounts to the identification of individual branches (”cutting the branches off the dendrogram”). There are several methods for branch cutting; our standard method is the Dynamic Tree Cut from the package dynamicTreeCut. The next snippet of code illustrates its use.  
+In the clustering tree (dendrogram), each leaf, that is a short vertical line, corresponds to a gene. Branches of the dendrogram group together densely interconnected, highly co-expressed genes. Module identification amounts to the identification of individual branches (”cutting the branches off the dendrogram”).
 
 ```{r, message = FALSE}
 ## Experimental set:
 # We like large modules, so we set the minimum module size relatively high:
-minModuleSize = 30;
+min_module_size <- 30
 # Module identification using dynamic tree cut:
-exp_dynamicMods = cutreeDynamic(dendro = exp_geneTree, distM = diss_exp_TOM,
-              deepSplit = 2, pamRespectsDendro = FALSE,
-              minClusterSize = minModuleSize);
-table(exp_dynamicMods)
+exp_dynamic_mods <- cutreeDynamic(dendro = exp_gene_tree,
+                                 distM = diss_exp_tom,
+                                 deepSplit = 2,
+                                 pamRespectsDendro = FALSE,
+                                 minClusterSize = min_module_size)
+table(exp_dynamic_mods)
 ```
 
-The function returned 22 modules labeled 1–22 largest to smallest. Label 0 is reserved for unassigned genes. The above command lists the sizes of the modules. We now plot the module assignment under the gene dendrogram:
+We now plot the module assignment under the gene dendrogram:
 
 ```{r, message=FALSE}
 ## Experimental data:
-# Convert numeric lables into colors
-exp_dynamicColors = labels2colors(exp_dynamicMods)
+# Convert numeric labels into colors
+exp_dynamic_colors <- labels2colors(exp_dynamic_mods)
 table(exp_dynamicColors)
 # Plot the dendrogram and colors underneath
-sizeGrWindow(8,6)
-plotDendroAndColors(exp_geneTree, exp_dynamicColors, "Dynamic Tree Cut",
-                  dendroLabels = FALSE, hang = 0.03,
-                  addGuide = TRUE, guideHang = 0.05,
-                  main = "Gene dendrogram and module colors")
+sizeGrWindow(8, 6)
+plotDendroAndColors(exp_gene_tree,
+                    exp_dynamic_colors,
+                    "Dynamic Tree Cut",
+                    dendroLabels = FALSE,
+                    hang = 0.03,
+                    addGuide = TRUE,
+                    guideHang = 0.05,
+                    main = "Gene dendrogram and module colors")
 ```
 
-2.b.5 Merging of modules whose expression profiles are very similar
-The Dynamic Tree Cut may identify modules whose expression profiles are very similar. It may be prudent to merge such modules since their genes are highly co-expressed. To quantify co-expression similarity of entire modules, we calculate their eigengenes and cluster them on their correlation  
+7.5 Merging of modules whose expression profiles are very similar
+The Dynamic Tree Cut may identify modules whose expression profiles are very similar. It may be prudent to merge such modules since their genes are highly co-expressed. To quantify co-expression similarity of entire modules, we calculate their eigengenes and cluster them on their correlation: 
 
 ```{r, message = FALSE}
 ## Experimental dataset:
 # Calculate eigengenes
-exp_MEList = moduleEigengenes(transposed_data_filt, colors = exp_dynamicColors)
-exp_MEs = exp_MEList$eigengenes
+exp_me_list <- moduleEigengenes(transposed_data_filt,
+                                colors = exp_dynamic_colors)
+exp_mes <- exp_me_list$eigengenes
 # Calculate dissimilarity of module eigengenes
-exp_MEDiss = 1-cor(exp_MEs);
+exp_me_diss <- 1 - cor(exp_mes)
 # Cluster module eigengenes
-exp_METree = hclust(as.dist(exp_MEDiss), method = "average");
+exp_me_tree <- hclust(as.dist(exp_me_diss),
+                     method = "average")
 # Plot the result
 sizeGrWindow(7, 6)
-plot(exp_METree, main = "Clustering of module eigengenes",
-xlab = "", sub = "")
+plot(exp_me_tree,
+     main = "Clustering of module eigengenes",
+     xlab = "", su
+     = "")
 ```
 
-We choose a height cut of 0.25, corresponding to correlation of 0.75, to merge (see Fig. 4):
+We choose a height cut of 0.25, corresponding to correlation of 0.75, to merge:
 
 ```{r, message = FALSE}
 ## for the experimental dataset:
-exp_MEDissThres = 0.25
-# Plot the cut line into the dendrogram
-# abline(h=exp_MEDissThres, col = "red")
+exp_me_diss_thres <- 0.25
+
 # Call an automatic merging function
-exp_merge = mergeCloseModules(transposed_data_filt,
-                              exp_dynamicColors,
-                              cutHeight = exp_MEDissThres,
+exp_merge <- mergeCloseModules(transposed_data_filt,
+                              exp_dynamic_colors,
+                              cutHeight = exp_me_diss_yhres,
                               verbose = 3)
 # The merged module colors
-exp_mergedColors = exp_merge$colors;
+exp_merged_colors <- exp_merge$colors
+
 # Eigengenes of the new merged modules:
-exp_mergedMEs = exp_merge$newMEs;
+exp_merged_mes <- exp_merge$newMEs
 ```
 
-To see what the merging did to our module colors, we plot the gene dendrogram again, with the original and merged module colors underneath (Figure 5).
+To see what the merging did to our module colors, we plot the gene dendrogram again, with the original and merged module colors underneath.
 
 ```{r, message = FALSE}
 sizeGrWindow(12, 9)
-#pdf(file = "Plots/geneDendro-3.pdf", wi = 9, he = 6)
-plotDendroAndColors(exp_geneTree, cbind(exp_dynamicColors,
-                                        exp_mergedColors),
-                  c("Dynamic Tree Cut", "Merged dynamic"),
-                  dendroLabels = FALSE, hang = 0.03,
-                  addGuide = TRUE, guideHang = 0.05)
+plotDendroAndColors(exp_gene_tree,
+                    cbind(exp_dynamic_colors,
+                          exp_merged_colors),
+                    c("Dynamic Tree Cut",
+                      "Merged dynamic"),
+                    dendroLabels = FALSE,
+                    hang = 0.03,
+                    addGuide = TRUE,
+                    guideHang = 0.05)
 ```
 
 In the subsequent analysis, we will use the merged module colors in mergedColors. We save the relevant variables for use in subsequent parts of the tutorial:
@@ -267,292 +330,79 @@ In the subsequent analysis, we will use the merged module colors in mergedColors
 ```{r, message = FALSE}
 ## Experimental dataset:
 # Rename to moduleColors
-exp_moduleColors = exp_mergedColors
+exp_module_colors <- exp_merged_colors
 # Construct numerical labels corresponding to the colors
-exp_colorOrder = c("grey", standardColors(50));
-exp_moduleLabels = match(exp_moduleColors, exp_colorOrder)-1;
-exp_MEs = exp_mergedMEs;
+exp_color_order <- c("grey",
+                   standardColors(50))
+exp_module_labels <- match(exp_module_colors,
+                         exp_color_order) - 1
+exp_mes <- exp_merged_mes
+
 dir.create(path = "results")
 # Save module colors and labels for use in subsequent parts
-save(exp_MEs, exp_moduleLabels, exp_moduleColors, exp_geneTree, file = "results/ovary-02-networkConstruction-stepByStep.RData")
+save(exp_mes,
+     exp_module_labels,
+     exp_module_colors,
+     exp_gene_tree,
+     file = "results/ovary-02-networkConstruction-stepByStep.RData")
 ```
 
-3 Relating modules to external clinical traits 3.a Quantifying module–trait associations
-In this analysis we would like to identify modules that are significantly associated with the measured clinical traits. Since we already have a summary profile (eigengene) for each module, we simply correlate eigengenes with external traits and look for the most significant associations:
+8. Relating modules to attributes:
+8.1 Quantifying module–trait associations
+In this analysis we would like to identify modules that are significantly associated with the measured traits. Since we already have a summary profile (eigengene) for each module, we simply correlate eigengenes with external traits and look for the most significant associations:
 
 ```{r, message = FALSE}
 # Define numbers of genes and samples
-exp_nGenes = ncol(transposed_data_filt);
-exp_nSamples = nrow(transposed_data_filt);
+exp_n_genes <- ncol(transposed_data_filt)
+exp_n_samples <- nrow(transposed_data_filt)
 # Recalculate MEs with color labels
-exp_MEs0 = moduleEigengenes(transposed_data_filt, exp_moduleColors)$eigengenes
-exp_MEs = orderMEs(exp_MEs0)
-exp_moduleTraitCor = cor(exp_MEs, samples_information, use = "p");
-exp_moduleTraitPvalue = corPvalueStudent(exp_moduleTraitCor, exp_nSamples);
+exp_mes0 <- moduleEigengenes(transposed_data_filt,
+                             exp_module_colors)$eigengenes
+exp_mes <- orderMEs(exp_mes0)
+exp_module_trait_cor <- cor(exp_mes,
+                           samples_information,
+                           use = "p")
+exp_module_trait_pvalue <- corPvalueStudent(exp_module_trait_cor,
+                                           exp_n_samples)
 ```
 
-Since we have a moderately large number of modules and traits, a suitable graphical representation will help in reading the table. We color code each association by the correlation value:  
+We colour code each association by the correlation value:  
 
 ```{r, message = FALSE}
 ## Experimental dataset:
-sizeGrWindow(10,6)
+sizeGrWindow(10, 6)
+
 # Will display correlations and their p-values
-exp_textMatrix = paste(signif(exp_moduleTraitCor, 2), "\n(",
-                        signif(exp_moduleTraitPvalue, 1), ")", sep = "");
-dim(exp_textMatrix) = dim(exp_moduleTraitCor)
-par(mar = c(6, 8.5, 3, 3));
+exp_text_matrix <- paste(signif(exp_module_trait_cor, 2),
+                         "\n(",
+                         signif(exp_module_trait_pvalue, 1),
+                         ")",
+                         sep = "")
+dim(exp_text_matrix) <- dim(exp_module_trait_cor)
+par(mar = c(6, 8.5, 3, 3))
 # Display the correlation values within a heatmap plot
-labeledHeatmap(Matrix = exp_moduleTraitCor,
-             xLabels = names(samples_information),
-             yLabels = names(exp_MEs),
-             ySymbols = names(exp_MEs),
-             colorLabels = FALSE,
-             colors = blueWhiteRed(50),
-             textMatrix = exp_textMatrix,
-             setStdMargins = FALSE,
-             cex.text = 0.5,
-             zlim = c(-1,1),
-             main = paste("Module-trait relationships"))
+labeledHeatmap(Matrix = exp_module_trait_cor,
+               xLabels = names(samples_information),
+               yLabels = names(exp_mes),
+               ySymbols = names(exp_mes),
+               colorLabels = FALSE,
+               colors = blueWhiteRed(50),
+               textMatrix = exp_text_matrix,
+               setStdMargins = FALSE,
+               cex.text = 0.5,
+               zlim = c(-1, 1),
+               main = paste("Module-trait relationships"))
 
 # Save module colors and labels for use in subsequent parts
-save(exp_MEs, exp_moduleTraitCor, samples_information, exp_textMatrix, file = "results/ovary-03-input_for_labelled_heatmap.RData")
+save(exp_mes,
+     exp_module_trait_cor,
+     samples_information,
+     exp_text_matrix,
+     file = "results/ovary-03-input_for_labelled_heatmap.RData")
 ```
 
-The resulting color-coded table is shown in Fig. 1.
-The analysis identifies the several significant module–trait associations. We will concentrate on weight as the trait of interest.  
-
-3.b Gene relationship to trait and important modules: Gene Significance and Module Membership
-We quantify associations of individual genes with our trait of interest (weight) by defining Gene Significance GS as (the absolute value of) the correlation between the gene and the trait. For each module, we also define a quantitative measure of module membership MM as the correlation of the module eigengene and the gene expression profile. This allows us to quantify the similarity of all genes on the array to every module.
+9. Run lint:
 
 ```{r, message = FALSE}
-# Define variable weight containing the weight column of datTrait
-weight = as.data.frame(datTraits$weight_g);
-names(weight) = "weight"
-# names (colors) of the modules
-modNames = substring(names(MEs), 3)
-geneModuleMembership = as.data.frame(cor(datExpr, MEs, use = "p"));
-MMPvalue = as.data.frame(corPvalueStudent(as.matrix(geneModuleMembership), nSamples));
-
-names(geneModuleMembership) = paste("MM", modNames, sep="");
-names(MMPvalue) = paste("p.MM", modNames, sep="");
-geneTraitSignificance = as.data.frame(cor(datExpr, weight, use = "p"));
-GSPvalue = as.data.frame(corPvalueStudent(as.matrix(geneTraitSignificance), nSamples));
-names(geneTraitSignificance) = paste("GS.", names(weight), sep="");
-names(GSPvalue) = paste("p.GS.", names(weight), sep="")
-
-# Define variable treatment containing the treatment column of samples information
-treatment = as.data.frame(samples_information$treatment);
-names(treatment) = "treatment"
-# names (colors) of the modules
-exp_modNames = substring(names(exp_MEs), 3)
-exp_geneModuleMembership = as.data.frame(cor(transposed_data_filt,
-                                         exp_MEs,
-                                         use = "p"));
-exp_MMPvalue = as.data.frame(corPvalueStudent(as.matrix(exp_geneModuleMembership),
-                                          exp_nSamples));
-
-names(exp_geneModuleMembership) = paste("MM", exp_modNames, sep="");
-names(exp_MMPvalue) = paste("p.MM", exp_modNames, sep="");
-exp_geneTraitSignificance = as.data.frame(cor(transposed_data_filt,
-                                          treatment,
-                                          use = "p"));
-exp_GSPvalue = as.data.frame(corPvalueStudent(as.matrix(exp_geneTraitSignificance),
-                                          exp_nSamples));
-names(exp_geneTraitSignificance) = paste("GS.", names(treatment), sep="");
-names(exp_GSPvalue) = paste("p.GS.", names(treatment), sep="")
+lintr::lint(file = "run_wgcna_ovary.Rmd")
 ```
-
-3.c Intramodular analysis: identifying genes with high GS and MM
-Using the GS and MM measures, we can identify genes that have a high significance for weight as well as high module membership in interesting modules. As an example, we look at the brown module that has the highest association with weight. We plot a scatterplot of Gene Significance vs. Module Membership in the brown module:  
-
-```{r, message = FALSE}
-module = "brown"
-column = match(module, modNames);
-moduleGenes = moduleColors==module;
-sizeGrWindow(7, 7);
-par(mfrow = c(1,1));
-verboseScatterplot(abs(geneModuleMembership[moduleGenes, column]),
-                   abs(geneTraitSignificance[moduleGenes, 1]),
-                 xlab = paste("Module Membership in", module, "module"),
-                 ylab = "Gene significance for body weight",
-                 main = paste("Module membership vs. gene significance\n"),
-                 cex.main = 1.2, cex.lab = 1.2, cex.axis = 1.2, col = module)
-
-
-exp_module = "red"
-exp_column = match(exp_module, exp_modNames);
-exp_moduleGenes = exp_moduleColors==exp_module;
-sizeGrWindow(7, 7);
-par(mfrow = c(1,1));
-verboseScatterplot(abs(exp_geneModuleMembership[exp_moduleGenes, exp_column]),
-                   abs(exp_geneTraitSignificance[exp_moduleGenes, 1]),
-                 xlab = paste("Module Membership in", exp_module, "module"),
-                 ylab = "Gene significance for treatment",
-                 main = paste("Module membership vs. gene significance\n"),
-                 cex.main = 1.2, cex.lab = 1.2, cex.axis = 1.2, col = exp_module)
-
-# Save module colors and labels for use in subsequent parts
-save(exp_geneModuleMembership,
-     exp_moduleGenes,
-     exp_module,
-     exp_column,
-     exp_geneTraitSignificance,
-     file = "results/spermatheca-04-input_for_membership_scatterplot_red.RData")
-```
-
-
-3.d Summary output of network analysis results
-We have found modules with high association with our trait of interest, and have identified their central players by the Module Membership measure. We now merge this statistical information with gene annotation and write out a file that summarizes the most important results and can be inspected in standard spreadsheet software such as MS Excel or Open Office Calc. Our expression data are only annotated by probe ID names: the command 
-will return all probe IDs included in the analysis. Similarly, the second command below 
-will return probe IDs belonging to the brown module. To facilitate interpretation of the results, we use a probe annotation file provided by the manufacturer of the expression arrays to connect probe IDs to gene names and universally recognized identification numbers (Entrez codes).
-
-````{r, message = FALSE}
-names(datExpr)
-names(datExpr)[moduleColors=="brown"]
-
-transposed_data_filt <- as.data.frame(transposed_data_filt)
-names(transposed_data_filt)
-red_module_genes <- names(transposed_data_filt)[exp_moduleColors=="red"]
-length(red_module_genes)
-write(x = red_module_genes,
-      file = "results/red_module_genes.txt")
-
-yellow_module_genes <- names(transposed_data_filt)[exp_moduleColors=="yellow"]
-length(yellow_module_genes)
-write(x = yellow_module_genes,
-      file = "results/yellow_module_genes.txt")
-
-blue_module_genes <- names(transposed_data_filt)[exp_moduleColors=="blue"]
-length(blue_module_genes)
-write(x = blue_module_genes,
-      file = "results/blue_module_genes.txt")
-
-turquoise_module_genes <- names(transposed_data_filt)[exp_moduleColors=="turquoise"]
-length(turquoise_module_genes)
-write(x = turquoise_module_genes,
-      file = "results/turquoise_module_genes.txt")
-
-grey_module_genes <- names(transposed_data_filt)[exp_moduleColors=="grey"]
-length(grey_module_genes)
-write(x = grey_module_genes,
-      file = "results/grey_module_genes.txt")
-```
-
-
-```{r, message = FALSE}
-annot = read.csv(file = "data/FemaleLiver-Data/GeneAnnotation.csv");
-dim(annot)
-names(annot)
-probes = names(datExpr)
-probes2annot = match(probes, annot$substanceBXH)
-# The following is the number or probes without annotation:
-sum(is.na(probes2annot))
-# Should return 0.
-```
-
-We now create a data frame holding the following information for all probes: probe ID, gene symbol, Locus Link ID (Entrez code), module color, gene significance for weight, and module membership and p-values in all modules. The modules will be ordered by their significance for weight, with the most significant ones to the left.
-
-```{r, message=FALSE}
-# Create the starting data frame
-geneInfo0 = data.frame(substanceBXH = probes,
-                    geneSymbol = annot$gene_symbol[probes2annot],
-                    LocusLinkID = annot$LocusLinkID[probes2annot],
-                    moduleColor = moduleColors,
-                    geneTraitSignificance,
-                    GSPvalue)
-# Order modules by their significance for weight
-modOrder = order(-abs(cor(MEs, weight, use = "p")));
-# Add module membership information in the chosen order
-for (mod in 1:ncol(geneModuleMembership))
-{
-  oldNames = names(geneInfo0)
-  geneInfo0 = data.frame(geneInfo0, geneModuleMembership[, modOrder[mod]],
-                       MMPvalue[, modOrder[mod]]);
-  names(geneInfo0) = c(oldNames, paste("MM.", modNames[modOrder[mod]], sep=""),
-                     paste("p.MM.", modNames[modOrder[mod]], sep=""))
-}
-# Order the genes in the geneInfo variable first by module color, then by geneTraitSignificance
-geneOrder = order(geneInfo0$moduleColor, -abs(geneInfo0$GS.weight));
-geneInfo = geneInfo0[geneOrder, ]
-```
-
-This data frame can be written into a text-format spreadsheet, for example by
-```{r, message = FALSE}
-write.csv(geneInfo, file = "geneInfo.csv")
-```
-
-The reader is encouraged to open and view the file in a spreadsheet software, or inspect it directly within R using the command fix(geneInfo).
-
-5 Visualization of networks within R 5.a Visualizing the gene network
-One way to visualize a weighted network is to plot its heatmap, Fig. 1. Each row and column of the heatmap correspond to a single gene. The heatmap can depict adjacencies or topological overlaps, with light colors denoting low adjacency (overlap) and darker colors higher adjacency (overlap). In addition, the gene dendrograms and module colors are plotted along the top and left side of the heatmap. The package provides a convenient function to create such network plots; Fig. 1 was created using the following code. This code can be executed only if the network was calculated using a single-block approach (that is, using the 1-step automatic or the step-by-step tutorials). If the networks were calculated using the block-wise approach, the user will need to modify this code to perform the visualization in each block separately. The modification is simple and we leave it as an exercise for the interested reader.
-
-```{r, message = FALSE}
-# Calculate topological overlap anew: this could be done more efficiently by saving the TOM
-# calculated during module detection, but let us do it again here.
-dissTOM = 1-TOMsimilarityFromExpr(datExpr, power = 6);
-# Transform dissTOM with a power to make moderately strong connections more visible in the heatmap
-plotTOM = dissTOM^7;
-# Set diagonal to NA for a nicer plot
-diag(plotTOM) = NA;
-# Call the plot function
-sizeGrWindow(9,9)
-TOMplot(plotTOM, geneTree, moduleColors, main = "Network heatmap plot, all genes")
-```
-
-Note that the generating the heatmap plot may take a substantial amount of time. It is possible to restrict the number of genes to speed up the plotting; however, the gene dendrogram of a subset of genes will often look different from the gene dendrogram of all genes. In the following example we restrict the number of plotted genes to 400:
-
-```{r, message = FALSE}
-nSelect = 400
-# For reproducibility, we set the random seed
-set.seed(10);
-select = sample(nGenes, size = nSelect);
-selectTOM = dissTOM[select, select];
-# There’s no simple way of restricting a clustering tree to a subset of genes, so we must re-cluster.
-selectTree = hclust(as.dist(selectTOM), method = "average")
-selectColors = moduleColors[select];
-# Open a graphical window
-sizeGrWindow(9,9)
-# Taking the dissimilarity to a power, say 10, makes the plot more informative by effectively changing
-# the color palette; setting the diagonal to NA also improves the clarity of the plot
-plotDiss = selectTOM^7;
-diag(plotDiss) = NA;
-TOMplot(plotDiss, selectTree, selectColors, main = "Network heatmap plot, selected genes")
-```
-
-5.b Visualizing the network of eigengenes
-It is often interesting to study the relationships among the found modules. One can use the eigengenes as represen- tative profiles and quantify module similarity by eigengene correlation. The package contains a convenient function plotEigengeneNetworks that generates a summary plot of the eigengene network. It is usually informative to add a clinical trait (or multiple traits) to the eigengenes to see how the traits fit into the eigengene network:  
-```{r, message = FALSE}
-# Recalculate module eigengenes
-MEs = moduleEigengenes(datExpr, moduleColors)$eigengenes
-# Isolate weight from the clinical traits
-weight = as.data.frame(datTraits$weight_g);
-names(weight) = "weight"
-# Add the weight to existing module eigengenes
-MET = orderMEs(cbind(MEs, weight))
-# Plot the relationships among the eigengenes and the trait
-sizeGrWindow(5,7.5);
-par(cex = 0.9)
-plotEigengeneNetworks(MET, "", marDendro = c(0,4,1,2), marHeatmap = c(3,4,1,2), cex.lab = 0.8, xLabelsAngle
-= 90)
-
-
-```
-
-The function produces a dendrogram of the eigengenes and trait(s), and a heatmap of their relationships. To split the dendrogram and heatmap plots, we can use the following code
-
-```{r, message = FALSE}
-# Plot the dendrogram
-sizeGrWindow(6,6);
-par(cex = 1.0)
-plotEigengeneNetworks(MET, "Eigengene dendrogram", marDendro = c(0,4,2,0),
-                    plotHeatmaps = FALSE)
-# Plot the heatmap matrix (note: this plot will overwrite the dendrogram plot)
-par(cex = 1.0)
-plotEigengeneNetworks(MET, "Eigengene adjacency heatmap", marHeatmap = c(3,4,2,2),
-                    plotDendrograms = FALSE, xLabelsAngle = 90)
-```
-
-Fig. 2 shows the output of the above code. The eigengene dendrogram and heatmap identify groups of correlated eigengenes termed meta-modules. For example, the dendrogram indicates that red, brown and bluw modules are highly related; their mutual correlations are stronger than their correlations with weight. On the other hand, the salmon module, which is also significantly correlated with weight, is not part of the same meta-module as the red,
-   
-brown and blue modules, at least if meta-modules are defined as tight custers of modules (for example, modules with a correlation of eigengenes of at least 0.5).
-
