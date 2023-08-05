@@ -11,10 +11,10 @@ fontsize: 20pt
 
 ## Introduction
 The purpose of the present analysis is to examine similarities and differences in terms of gene expression associated with the ovaries of _Bombus terrestris_ workers and queens. For the present study, control (unmated), and artificially inseminated bumblebees were collected and ovaries removed at three different time points (two, four and eight days post-treatment). The study also
-included treatment groups to examine changes in gene expression due to artificial insemination alone as well as the dilutant used during the insemination step.  
+included treatment groups to examine changes in gene expression due to artificial insemination alone as well as the diluent used during the insemination step.  
 
 ## Samples:  
-The 'ovaries' dataset consists of 72 samples:  
+The 'ovary' dataset consists of 72 samples:  
 **Queen samples:** n = 24 
 - Control (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)
 - Insemination (n = 12; stage 1 n = 4, stage II n = 4, and stage IV n = 4)  
@@ -34,12 +34,12 @@ _Bombus terrestris_ reference genome assembly using [STAR](https://github.com/al
 ## Results  
 The first aspect of the analysis involved examining outliers.  
 First, the number of expressed genes was compared across individuals using an upset plot (Fig. 1).  
-This revealed **9103** genes expressed in all samples (approximately 79% of all genes (n = 11557) expressed in the ovaries).   
+This revealed **9487** genes expressed in all samples (approximately 82% of all genes (n = 11598) expressed in the ovary).   
 Second, density plots were generated for the percentage of expressed genes per sample for:
 - Caste (Fig. 2A)
 - Treatment (Fig. 2B)
 - Stage (Fig. 2C)  
-There was a significant difference  in terms of the mean percentage of expressed genes across castes (t-test; p = 0.04), but no difference between treatments (ANOVA; p = 0.5) and stage (ANOVA; p = 0.34).  
+There was no significant difference in terms of the mean percentage of expressed genes across castes (t-test; p = 0.37) and between treatments (ANOVA; p = 0.37). However, there was a significance difference in percentage of expressed gene between stages (ANOVA; p < 2e-16).
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Step One: Load libraries - if not present, install from scratch.
@@ -154,10 +154,6 @@ samples_info$treatment_group <- gsub(pattern = "Insemination_with_nothing",
 # Step Three: Explore gene-level accounts across samples to identify potential
 # outliers.
 
-#The level of alignment across samples is generally quite good (>75% of all
-# genes detected across samples (Fig. 1) with on average (mean) 87.5% of genes
-# detected across all samples) (Figs.2-4).
-
 ## Build DESeq2 dataset:
 dds_htseq <- DESeqDataSetFromHTSeqCount(sampleTable = samples_info,
                                        directory = directory,
@@ -195,7 +191,7 @@ for (name in 1:ncol(counts)){
 }
 
 ## Plot upSet plot and save as a PDF:
-pdf(file = "results/upset_ovary_plot.pdf",
+pdf(file = "results/upset_plot.pdf",
     height = 12,
     width = 8) # or other device
 UpSetR::upset(fromList(new_list),
@@ -226,6 +222,7 @@ _**Fig. 1.** Upset plot displaying overlap in gene expression across all samples
 ## Across all samples, the total number of genes detected:
 total_genes <- length(unique(sort(unlist(new_list))))
 
+## Calculate the percentage of expressed genes per sample:
 percentages <- list()
 for (name in names(new_list)){
   percentages[[name]] <- length(unique(sort(unlist(new_list[[name]])))) /
@@ -254,48 +251,57 @@ percentages_df$treatment <- samples_info[match(row.names(percentages_df),
                                 samples_info$short_name), ]$treatment_group
 
 percentages_df$stage <- samples_info[match(row.names(percentages_df),
-                                samples_info$short_name), ]$stage
+                                           samples_info$short_name), ]$stage
 
 colnames(percentages_df)[1] <- "percentage"
 
+## Generate density plot based on caste:
 density_caste_plot <- ggplot(data = percentages_df,
-       aes(x = percentage,
-           colour = caste)) +
+                             aes(x = percentage,
+                                 colour = caste)) +
   xlab(label = "Percentage of expressed genes") +
   geom_density() +
   theme_bw() +
   theme(axis.title = element_text(face = "bold",
                                   size = 10))
 
+## Perform t-test to compare proportion of expressed genes
+## between castes:
 t.test(subset(percentages_df,
               caste == "Worker")$percentage,
        subset(percentages_df,
               caste == "Queen")$percentage)
 
+## Generate density plot based on treatment:
 density_treatment_plot <- ggplot(data = percentages_df,
-       aes(x = percentage,
-           colour = treatment)) +
+                                 aes(x = percentage,
+                                     colour = treatment)) +
   xlab(label = "Percentage of expressed genes") +
   geom_density() +
   theme_bw() +
   theme(axis.title = element_text(face = "bold",
                                   size = 10))
 
+## Perform an ANOVA to compare proportion of expressed genes
+## between treatments:
 treatment_aov <- aov(percentage ~ treatment,
-               data = percentages_df)
+                     data = percentages_df)
 summary(treatment_aov)
 
+## Generate density plot based on stage of ovarian development:
 density_stage_plot <- ggplot(data = percentages_df,
-       aes(x = percentage,
-           colour = stage)) +
+                             aes(x = percentage,
+                                 colour = stage)) +
   xlab(label = "Percentage of expressed genes") +
   geom_density() +
   theme_bw() +
   theme(axis.title = element_text(face = "bold",
                                   size = 10))
 
+## Perform an ANOVA to compare proportion of expressed genes
+## between stages:
 stage_aov <- aov(percentage ~ stage,
-               data = percentages_df)
+                 data = percentages_df)
 summary(stage_aov)
 ```
 
@@ -332,6 +338,7 @@ deseq_object  <- DESeq(dds_htseq,
 vsd <- vst(deseq_object,
            blind = FALSE)
 
+## Remove underscore '_':
 vsd$stage <- gsub(pattern = "_",
                   replacement = " ",
                   vsd$stage)
@@ -362,6 +369,8 @@ rownames(sample_dist_matrix) <- paste(vsd$caste,
                                     vsd$stage,
                                     sep = " - ")
 colnames(sample_dist_matrix) <- NULL
+
+## Set colours for plotting:
 colors <- colorRampPalette(rev(brewer.pal(9,
                                           "Blues")))(255)
 ```
@@ -380,7 +389,7 @@ _**Fig. 3.** Heatmap displaying distance matrix of genes expressed within and ac
 
 ## Principal component analysis.  
 
-To examine further similarities in terms of expression profiles across samples, a principal component analysis using VST gene values was performed. The first principal component, which explains 55% of the variance in the dataset identifies the possibility of outliers with no clear difference explained by the first two components that separate caste. There was evidence that one of the treatments may be driving the pattern (Fig. 5). It was decided to rerun the PCA with the four samples separated by PC1 removed to provide more resolution on differences between samples    
+To examine further similarities in terms of expression profiles across samples, a principal component analysis using VST gene values was performed. The first principal component, which explains 83% of the variance in the dataset clearly  separates indivdiuals based on stage of ovarian development. Similar to the other tissues, there are at least two outliers as identified by PC2 (Figs. 4-6). It was decided to rerun the PCA with the two samples separated by PC2 removed to provide more resolution on differences between samples    
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Here set the two principal components that you want to compare:
 ## Create function for plotting:
@@ -452,7 +461,8 @@ Scatterplots displaying combinations of the first four principal components (PCs
 - Stage (Fig. 6)  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
-## Generate plot:
+## Generate plots:
+## Plot PCs 1 and 2 and colour based on caste:
 caste_plot_pc1_2 <- plot_pca_san(vsd,
                           first_pc = 1,
                           second_pc = 2,
@@ -460,6 +470,7 @@ caste_plot_pc1_2 <- plot_pca_san(vsd,
 caste_plot_pc1_2 <- caste_plot_pc1_2 +
   scale_fill_discrete(name = "Caste")
 
+## Plot PCs 1 and 3 and colour based on caste:
 caste_plot_pc1_3 <- plot_pca_san(vsd,
                           first_pc = 1,
                           second_pc = 3,
@@ -467,6 +478,7 @@ caste_plot_pc1_3 <- plot_pca_san(vsd,
 caste_plot_pc1_3 <- caste_plot_pc1_3 +
   scale_fill_discrete(name = "Caste")
 
+## Plot PCs 1 and 4 and colour based on caste:
 caste_plot_pc1_4 <- plot_pca_san(vsd,
                           first_pc = 1,
                           second_pc = 4,
@@ -475,7 +487,8 @@ caste_plot_pc1_4 <- caste_plot_pc1_4 +
   scale_fill_discrete(name = "Caste")
 ```
 
-```{r figure6, ref.label = "figure6", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
+```{r figure4, ref.label = "figure4", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
+## Generate a multi-panel plot:
 ggarrange(caste_plot_pc1_2,
           caste_plot_pc1_3,
           caste_plot_pc1_4,
@@ -488,7 +501,8 @@ ggarrange(caste_plot_pc1_2,
 _**Fig. 4.** Principal component analysis with first two principal components shown. Individuals are coloured by caste (queen = "red"; worker = "blue)._  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
-## Generate plot:
+## Generate plots:
+## Plot PCs 1 and 2 and colour based on treatment:
 group_plot_pc1_2 <- plot_pca_san(vsd,
                           first_pc = 1,
                           second_pc = 2,
@@ -496,6 +510,7 @@ group_plot_pc1_2 <- plot_pca_san(vsd,
 group_plot_pc1_2 <- group_plot_pc1_2 +
   scale_fill_discrete(name = "Treatment")
 
+## Plot PCs 1 and 3 and colour based on treatment:
 group_plot_pc1_3 <- plot_pca_san(vsd,
                           first_pc = 1,
                           second_pc = 3,
@@ -503,6 +518,7 @@ group_plot_pc1_3 <- plot_pca_san(vsd,
 group_plot_pc1_3 <- group_plot_pc1_3 +
   scale_fill_discrete(name = "Treatment")
 
+## Plot PCs 1 and 4 and colour based on treatment:
 group_plot_pc1_4 <- plot_pca_san(vsd,
                           first_pc = 1,
                           second_pc = 4,
@@ -512,6 +528,7 @@ group_plot_pc1_4 <- group_plot_pc1_4 +
 ```
 
 ```{r figure5, ref.label = "figure5", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
+## Generate a multi-panel plot:
 ggarrange(group_plot_pc1_2,
           group_plot_pc1_3,
           group_plot_pc1_4,
@@ -524,6 +541,8 @@ ggarrange(group_plot_pc1_2,
 _**Fig. 5.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (control = "red"; inseminated group = "blue)._  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
+## Generate plots:
+## Plot PCs 1 and 2 and colour based on stage:
 stage_plot_pc1_2 <- plot_pca_san(vsd,
                           first_pc = 1,
                           second_pc = 2,
@@ -531,6 +550,7 @@ stage_plot_pc1_2 <- plot_pca_san(vsd,
 stage_plot_pc1_2 <- stage_plot_pc1_2 +
   scale_fill_discrete(name = "Stage")
 
+## Plot PCs 1 and 3 and colour based on stage:
 stage_plot_pc1_3 <- plot_pca_san(vsd,
                           first_pc = 1,
                           second_pc = 3,
@@ -538,6 +558,7 @@ stage_plot_pc1_3 <- plot_pca_san(vsd,
 stage_plot_pc1_3 <- stage_plot_pc1_3 +
   scale_fill_discrete(name = "Stage")
 
+## Plot PCs 1 and 4 and colour based on stage:
 stage_plot_pc1_4 <- plot_pca_san(vsd,
                           first_pc = 1,
                           second_pc = 4,
@@ -546,7 +567,8 @@ stage_plot_pc1_4 <- stage_plot_pc1_4 +
   scale_fill_discrete(name = "Stage")
 ```
 
-```{r figure7, ref.label = "figure7", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
+```{r figure6, ref.label = "figure6", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
+## Generate a multi-panel plot:
 ggarrange(stage_plot_pc1_2,
           stage_plot_pc1_3,
           stage_plot_pc1_4,
@@ -560,20 +582,21 @@ _**Fig. 6.** Principal component analysis with first two principal components sh
 ## Calculate principal components:
 pca <- prcomp(t(assay(vsd)))
 
+## Convert to a dataframe:
 pca_df <- as.data.frame(pca$x)
+
 ## check the proportion of variance explained by each PC:
 summary(pca)
 ```
 
-So appears there are a few outliers - if we remove:
-
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Identify outliers:
-## Based on PCs 1 and 2, anything right of 10 on PC1 is likely an outlier:
+## Based on PCs 1 and 2, anything above 20 on PC2 is likely an outlier:
 samples_to_keep <- subset(x = pca_df,
                           PC2 < 20)
 samples_to_keep <- row.names(samples_to_keep)
 
+## Subset samples to keep:
 dds_htseq <- dds_htseq[, samples_to_keep]
 
 ## Create a DESeq2 object:
@@ -585,6 +608,7 @@ deseq_object  <- DESeq(dds_htseq,
 vsd <- vst(deseq_object,
              blind = FALSE)
 
+## Remove underscore:
 vsd$stage <- gsub(pattern = "_",
                   replacement = " ",
                   vsd$stage)
@@ -608,11 +632,14 @@ sample_dists <- dist(t(assay(vsd)))
 ## Convert to a matrix:
 sample_dist_matrix <- as.matrix(sample_dists)
 
+## Update row names:
 rownames(sample_dist_matrix) <- paste(vsd$caste,
                                       vsd$treatment_group,
                                       vsd$stage,
                                       sep = " - ")
 colnames(sample_dist_matrix) <- NULL
+
+## Set colours"
 colors <- colorRampPalette(rev(brewer.pal(9,
                                           "Blues")))(255)
 
@@ -620,13 +647,14 @@ colors <- colorRampPalette(rev(brewer.pal(9,
 pdf(file = "results/ovary_filtered_pheatmap.pdf",
     height = 10,
     width = 10)
-fb_heatmap_filtered <- pheatmap(sample_dist_matrix,
+ovary_heatmap_filtered <- pheatmap(sample_dist_matrix,
                                    clustering_distance_rows = sample_dists,
                                    clustering_distance_cols = sample_dists,
                                    col = colors)
 dev.off()
 
 ## Generate plot:
+## Plot PCs 1 and 2 and colour based on caste:
 caste_plot_pc1_2 <- plotPCA.san(vsd,
                           first_pc = 1,
                           second_pc = 2,
@@ -634,6 +662,7 @@ caste_plot_pc1_2 <- plotPCA.san(vsd,
 caste_plot_pc1_2 <- caste_plot_pc1_2 +
   scale_fill_discrete(name = "Caste")
 
+## Plot PCs 1 and 3 and colour based on caste:
 caste_plot_pc1_3 <- plotPCA.san(vsd,
                           first_pc = 1,
                           second_pc = 3,
@@ -641,6 +670,7 @@ caste_plot_pc1_3 <- plotPCA.san(vsd,
 caste_plot_pc1_3 <- caste_plot_pc1_3 +
   scale_fill_discrete(name = "Caste")
 
+## Plot PCs 1 and 4 and colour based on caste:
 caste_plot_pc1_4 <- plotPCA.san(vsd,
                           first_pc = 1,
                           second_pc = 4,
@@ -649,20 +679,22 @@ caste_plot_pc1_4 <- caste_plot_pc1_4 +
   scale_fill_discrete(name = "Caste")
 ```
 
-```{r figure6, ref.label = "figure6", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
+```{r figure7, ref.label = "figure7", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
+## Generate a combined plot:
 combined_caste_plot <- ggarrange(caste_plot_pc1_2,
-          caste_plot_pc1_3,
-          caste_plot_pc1_4,
-          nrow = 1,
-          ncol = 3,
-          align = "hv",
-          common.legend = TRUE)
+                                 caste_plot_pc1_3,
+                                 caste_plot_pc1_4,
+                                 nrow = 1,
+                                 ncol = 3,
+                                 align = "hv",
+                                 common.legend = TRUE)
 ```
 
-_**Fig. 4.** Principal component analysis with first two principal components shown. Individuals are coloured by caste (queen = "red"; worker = "blue)._  
+_**Fig. 7.** Principal component analysis with first two principal components shown. Individuals are coloured by caste (queen = "red"; worker = "blue)._  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Generate plot:
+## Plot PCs 1 and 2 and colour based on treatment:
 group_plot_pc1_2 <- plotPCA.san(vsd,
                           first_pc = 1,
                           second_pc = 2,
@@ -671,6 +703,7 @@ group_plot_pc1_2 <- group_plot_pc1_2 +
   scale_fill_brewer(name = "Treatment",
                     palette = "Blues")
 
+## Plot PCs 1 and 3 and colour based on treatment:
 group_plot_pc1_3 <- plotPCA.san(vsd,
                           first_pc = 1,
                           second_pc = 3,
@@ -679,6 +712,7 @@ group_plot_pc1_3 <- group_plot_pc1_3 +
   scale_fill_brewer(name = "Treatment",
                     palette = "Blues")
 
+## Plot PCs 1 and 4 and colour based on treatment:
 group_plot_pc1_4 <- plotPCA.san(vsd,
                           first_pc = 1,
                           second_pc = 4,
@@ -688,19 +722,22 @@ group_plot_pc1_4 <- group_plot_pc1_4 +
                     palette = "Blues")
 ```
 
-```{r figure5, ref.label = "figure5", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
+```{r figure8, ref.label = "figure8", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
+## Generate a combined plot:
 combined_group_plot <- ggarrange(group_plot_pc1_2,
-          group_plot_pc1_3,
-          group_plot_pc1_4,
-          nrow = 1,
-          ncol = 3,
-          align = "hv",
-          common.legend = TRUE)
+                                 group_plot_pc1_3,
+                                 group_plot_pc1_4,
+                                 nrow = 1,
+                                 ncol = 3,
+                                 align = "hv",
+                                 common.legend = TRUE)
 ```
 
-_**Fig. 5.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (control = "red"; inseminated group = "blue)._  
+_**Fig. 8.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment._  
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
+## Generate plot:
+## Plot PCs 1 and 2 and colour based on stage:
 stage_plot_pc1_2 <- plotPCA.san(vsd,
                           first_pc = 1,
                           second_pc = 2,
@@ -711,6 +748,7 @@ stage_plot_pc1_2 <- stage_plot_pc1_2 +
                                "grey",
                                "white"))
 
+## Plot PCs 1 and 3 and colour based on stage:
 stage_plot_pc1_3 <- plotPCA.san(vsd,
                           first_pc = 1,
                           second_pc = 3,
@@ -721,6 +759,7 @@ stage_plot_pc1_3 <- stage_plot_pc1_3 +
                                "grey",
                                "white"))
 
+## Plot PCs 1 and 4 and colour based on stage:
 stage_plot_pc1_4 <- plotPCA.san(vsd,
                           first_pc = 1,
                           second_pc = 4,
@@ -732,22 +771,25 @@ stage_plot_pc1_4 <- stage_plot_pc1_4 +
                                "white"))
 ```
 
-```{r figure7, ref.label = "figure7", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
+```{r figure9, ref.label = "figure9", fig.width = 8, fig.height = 5, echo = FALSE, message=FALSE}
+## Generate a combined plot:
 combined_stage_plot <- ggarrange(stage_plot_pc1_2,
-          stage_plot_pc1_3,
-          stage_plot_pc1_4,
-          nrow = 1,
-          ncol = 3,
-          align = "hv",
-          common.legend = TRUE)
+                                 stage_plot_pc1_3,
+                                 stage_plot_pc1_4,
+                                 nrow = 1,
+                                 ncol = 3,
+                                 align = "hv",
+                                 common.legend = TRUE)
 ```
-_**Fig. 6.** Principal component analysis with first two principal components shown. Individuals are coloured by treatment (two days = "blue"; four days = "green"; eight days = "red")_    
+_**Fig. 9.** Principal component analysis with first two principal components shown. Individuals are coloured by stage ovarian development_    
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide', warning=FALSE}
 ## Calculate principal components:
 pca <- prcomp(t(assay(vsd)))
 
+## Convert to a dataframe:
 pca_df <- as.data.frame(pca$x)
+
 ## check the proportion of variance explained by each PC:
 summary(pca)
 ```
@@ -755,15 +797,16 @@ summary(pca)
 Generate a combined plot:
 
 ```{r, message = FALSE}
+## Generate a combined multi-panel plot based on PCAs:
 pca_combined <- ggarrange(combined_caste_plot,
                           combined_group_plot,
                           combined_stage_plot,
-          nrow = 3,
-          ncol = 1,
-          labels = c("a",
-                     "b",
-                     "c"),
-          align = "hv")
+                          nrow = 3,
+                          ncol = 1,
+                          labels = c("a",
+                                     "b",
+                                     "c"),
+                          align = "hv")
 
 ## Print to console:
 (pca_combined)
@@ -772,10 +815,14 @@ pca_combined <- ggarrange(combined_caste_plot,
 ggsave(filename = "results/ovary_filtered_pca_plot.pdf",
        height = 8,
        width = 8)
+
+ggsave(filename = "results/ovary_filtered_pca_plot.png",
+       height = 8,
+       width = 8)
 ```
 
 Run lintr to check style errors:
 
 ```{r, message = FALSE}
-lintr::lint(file = "deseq2_analysis_ovary_treatment.Rmd")
+lintr::lint(file = "deseq2_analysis_ovary_treatment_new.Rmd")
 ```
