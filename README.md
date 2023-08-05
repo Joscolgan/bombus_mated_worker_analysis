@@ -6,11 +6,11 @@ M Zhuang, TJ Colgan, Y Guo, Z Zhang, F Liu, Z Xia, X Dai, Z Zhang, Y Li, L Wang,
 
 The following directory contains scripts for:  
 - **The quality assessment of RNA-seq FASTQ sequences.**  
-- Performed using [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/).   
+- 	Performed using [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/).   
 - **The alignment of filtered reads.**  
-- Performed using [STAR](https://github.com/alexdobin/STAR).  
+- 	Performed using [STAR](https://github.com/alexdobin/STAR).  
 - **Data exploration, including differential expression analysis.**    
-- Performed using [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html).  
+	- Performed using [DESeq2](https://bioconductor.org/packages/release/bioc/html/DESeq2.html).  
 - **Gene Ontology term enrichment analysis.**  
 - Performed using [topGO](https://bioconductor.org/packages/release/bioc/html/topGO.html).  
 - Kolmogorov-Smirnov test.  
