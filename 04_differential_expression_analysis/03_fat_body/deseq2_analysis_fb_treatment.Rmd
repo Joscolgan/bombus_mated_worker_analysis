@@ -815,6 +815,10 @@ pca_combined <- ggarrange(combined_caste_plot,
 ggsave(filename = "results/fat_body_filtered_pca_plot.pdf",
        height = 8,
        width = 8)
+
+ggsave(filename = "results/fat_body_filtered_pca_plot.png",
+       height = 8,
+       width = 8)
 ```
 
 Run lintr to check style errors:
