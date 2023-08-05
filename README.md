@@ -1,5 +1,5 @@
 ## Context & Citation:   
-#Unexpected worker mating and colony-founding in a superorganism  
+# Unexpected worker mating and colony-founding in a superorganism  
 
 This repository contains scripts related to the transcriptomic analysis of tissues (reproductive tissues (spermetheca, median oviduct, vagina), fat bodies, brains, and ovaries) collected from worker and queen bumblebees. Findings of the analysis are reported in the following manuscript:   
 
