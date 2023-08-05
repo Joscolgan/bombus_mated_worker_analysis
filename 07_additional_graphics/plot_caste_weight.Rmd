@@ -1,0 +1,175 @@
+
+
+
+1. Load library:
+
+```{r, message = FALSE}
+library(tidyverse)
+library(ggpubr)
+```
+
+2. Load data:
+
+```{r, message = FALSE}
+data <- read.table(file = "data/new_data.txt",
+                   header = FALSE)
+
+## Update column names:
+colnames(data) <- c("weight",
+                    "caste",
+                    "species",
+                    "colony")
+
+data$species <- gsub(pattern = "ignitus",
+                     replacement = "Bombus ignitus",
+                     data$species)
+
+data$colony <- gsub(pattern = 9,
+                     replacement = 1,
+                     data$colony)
+
+data$species <- gsub(pattern = "lantschouensis",
+                     replacement = "Bombus lantschouensis",
+                     data$species)
+
+data$species <- gsub(pattern = "montivagus",
+                     replacement = "Bombus montivagus",
+                     data$species)
+```
+
+3. Plot data:
+
+```{r, message = FALSE}
+## Reorder levels for plotting:
+data$caste <- factor(data$caste,
+                     levels = c("worker",
+                                "queen"))
+
+data$combined <- paste(data$species,
+                       " (",
+                       data$colony,
+                       ")",
+                       sep = "")
+
+## Reorder:
+data$combined <- factor(data$combined,
+                        levels = c("Bombus montivagus (1)",
+                                   "Bombus ignitus (1)",
+                                   "Bombus lantschouensis (1)",
+                                   "Bombus ignitus (15)",
+                                   "Bombus lantschouensis (15)"))
+
+histogram_plotter <- function(data){
+  tmp <- ggplot(data = data,
+       aes(x = weight,
+           fill = species)) +
+  xlab(label = "Weight [g]") +
+  ylab(label = "Count") +
+  geom_histogram(bins = 50) +
+  theme_bw() +
+  theme(axis.title = element_text(face = "bold",
+                                  size = 10),
+        legend.title = element_text(face = "bold",
+                                  size = 10),
+        strip.text = element_text(face = "italic"),
+                legend.position = "none")
+  ##
+  print(tmp)
+}
+
+plot1a <- histogram_plotter(data = subset(data,
+                                combined == "Bombus montivagus (1)")) +
+  facet_wrap(~combined) +
+  scale_fill_manual(values = "gray")
+ 
+plot2a <- histogram_plotter(data = subset(data,
+                                combined == "Bombus ignitus (1)")) +
+  facet_wrap(~combined) +
+  scale_fill_manual(values = "orange")
+
+plot3a <-  histogram_plotter(data = subset(data,
+                                combined == "Bombus ignitus (15)")) +
+  facet_wrap(~combined) +
+  scale_fill_manual(values = "orange")
+
+plot4a <- histogram_plotter(data = subset(data,
+                                combined == "Bombus lantschouensis (1)")) +
+  facet_wrap(~combined) +
+  scale_fill_manual(values = "purple")
+
+plot5a <- histogram_plotter(data = subset(data,
+                                combined == "Bombus lantschouensis (15)")) +
+  facet_wrap(~combined) +
+  scale_fill_manual(values = "purple")
+
+
+boxplotter <- function(data){
+  tmp <- ggplot(data = data,
+       aes(x = caste,
+           y = weight,
+           fill = combined)) +
+  xlab("Caste") +
+  ylab("Weight [g]") +
+  geom_boxplot() +
+  theme_bw() +
+  theme(axis.title = element_text(face = "bold",
+                                  size = 10),
+        legend.title = element_text(face = "bold",
+                                  size = 10),
+        strip.text = element_text(face = "italic"),
+        legend.position = "none")
+  print(tmp)
+}
+
+plot1b <- boxplotter(data = subset(data,
+                                combined == "Bombus montivagus (1)")) +
+  facet_wrap(~combined) +
+  scale_fill_manual(values = "gray")
+ 
+plot2b <- boxplotter(data = subset(data,
+                                combined == "Bombus ignitus (1)")) +
+  facet_wrap(~combined) +
+  scale_fill_manual(values = "orange")
+
+plot3b <-  boxplotter(data = subset(data,
+                                combined == "Bombus ignitus (15)")) +
+  facet_wrap(~combined) +
+  scale_fill_manual(values = "orange")
+
+plot4b <- boxplotter(data = subset(data,
+                                combined == "Bombus lantschouensis (1)")) +
+  facet_wrap(~combined) +
+  scale_fill_manual(values = "purple")
+
+plot5b <- boxplotter(data = subset(data,
+                                combined == "Bombus lantschouensis (15)")) +
+  facet_wrap(~combined) +
+  scale_fill_manual(values = "purple")
+
+combined_1 <-  ggarrange(plot1a,
+                         plot2a,
+                         plot3a,
+                         plot4a,
+                         plot5a,
+        nrow = 1,
+        ncol = 5)
+
+combined_2 <-  ggarrange(plot1b,
+                         plot2b,
+                         plot3b,
+                         plot4b,
+                         plot5b,
+        nrow = 1,
+        ncol = 5)
+
+combined_plot <- ggarrange(combined_1,
+          combined_2,
+          nrow = 2,
+          ncol = 1,
+          align = "hv")
+
+ggsave(filename = "~/Documents/2023/drafts/nat_comm_spermatheca/alternative_combined_plot.png",
+       plot = combined_plot,
+       width = 12,
+       height = 8)
+```
